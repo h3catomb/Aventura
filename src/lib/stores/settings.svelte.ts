@@ -275,12 +275,84 @@ export function getDefaultStyleReviewerSettings(): StyleReviewerSettings {
   };
 }
 
+// Lore Management service settings (per design doc section 3.4)
+export interface LoreManagementSettings {
+  model: string;
+  temperature: number;
+  maxIterations: number;
+  systemPrompt: string;
+}
+
+export const DEFAULT_LORE_MANAGEMENT_PROMPT = `You are a lore manager for an interactive story. Your job is to maintain a consistent, comprehensive database of story elements.
+
+Your tasks:
+1. Identify important characters, locations, items, factions, and concepts that appear in the story but have no entry
+2. Find entries that are outdated or incomplete based on story events
+3. Identify redundant entries that should be merged
+4. Update relationship statuses and character states
+
+Guidelines:
+- Be conservative - only create entries for elements that are genuinely important to the story
+- Use exact names from the story text
+- When merging, combine all relevant information
+- Focus on facts that would help maintain story consistency
+
+Use your tools to review the story and make necessary changes. When finished, call finish_lore_management with a summary.`;
+
+export function getDefaultLoreManagementSettings(): LoreManagementSettings {
+  return {
+    model: 'deepseek/deepseek-v3.2',
+    temperature: 0.3,
+    maxIterations: 20,
+    systemPrompt: DEFAULT_LORE_MANAGEMENT_PROMPT,
+  };
+}
+
+// Agentic Retrieval service settings (per design doc section 3.1.4)
+export interface AgenticRetrievalSettings {
+  enabled: boolean;
+  model: string;
+  temperature: number;
+  maxIterations: number;
+  systemPrompt: string;
+  agenticThreshold: number; // Use agentic if chapters > N
+}
+
+export const DEFAULT_AGENTIC_RETRIEVAL_PROMPT = `You are a context retrieval agent for an interactive story. Your job is to gather relevant past context that will help the narrator respond to the current situation.
+
+Guidelines:
+1. Start by reviewing the chapter list to understand the story structure
+2. Query specific chapters that seem relevant to the current user input
+3. Focus on gathering context about:
+   - Characters mentioned or involved
+   - Locations being revisited
+   - Plot threads being referenced
+   - Items or information from the past
+   - Relationship history
+4. Be selective - only gather truly relevant information
+5. When you have enough context, call finish_retrieval with a synthesized summary
+
+The context you provide will be injected into the narrator's prompt to help maintain story consistency.`;
+
+export function getDefaultAgenticRetrievalSettings(): AgenticRetrievalSettings {
+  return {
+    enabled: false, // Disabled by default, static retrieval usually sufficient
+    model: 'deepseek/deepseek-v3.2',
+    temperature: 0.3,
+    maxIterations: 10,
+    systemPrompt: DEFAULT_AGENTIC_RETRIEVAL_PROMPT,
+    agenticThreshold: 30,
+  };
+}
+
 // Combined system services settings
 export interface SystemServicesSettings {
   classifier: ClassifierSettings;
   memory: MemorySettings;
   suggestions: SuggestionsSettings;
   styleReviewer: StyleReviewerSettings;
+  loreManagement: LoreManagementSettings;
+  agenticRetrieval: AgenticRetrievalSettings;
 }
 
 export function getDefaultSystemServicesSettings(): SystemServicesSettings {
@@ -289,6 +361,8 @@ export function getDefaultSystemServicesSettings(): SystemServicesSettings {
     memory: getDefaultMemorySettings(),
     suggestions: getDefaultSuggestionsSettings(),
     styleReviewer: getDefaultStyleReviewerSettings(),
+    loreManagement: getDefaultLoreManagementSettings(),
+    agenticRetrieval: getDefaultAgenticRetrievalSettings(),
   };
 }
 
@@ -400,6 +474,8 @@ class SettingsStore {
             memory: { ...defaults.memory, ...loaded.memory },
             suggestions: { ...defaults.suggestions, ...loaded.suggestions },
             styleReviewer: { ...defaults.styleReviewer, ...loaded.styleReviewer },
+            loreManagement: { ...defaults.loreManagement, ...loaded.loreManagement },
+            agenticRetrieval: { ...defaults.agenticRetrieval, ...loaded.agenticRetrieval },
           };
         } catch {
           this.systemServicesSettings = getDefaultSystemServicesSettings();
@@ -516,6 +592,16 @@ class SettingsStore {
 
   async resetStyleReviewerSettings() {
     this.systemServicesSettings.styleReviewer = getDefaultStyleReviewerSettings();
+    await this.saveSystemServicesSettings();
+  }
+
+  async resetLoreManagementSettings() {
+    this.systemServicesSettings.loreManagement = getDefaultLoreManagementSettings();
+    await this.saveSystemServicesSettings();
+  }
+
+  async resetAgenticRetrievalSettings() {
+    this.systemServicesSettings.agenticRetrieval = getDefaultAgenticRetrievalSettings();
     await this.saveSystemServicesSettings();
   }
 

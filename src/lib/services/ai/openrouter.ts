@@ -1,4 +1,16 @@
-import type { AIProvider, GenerationRequest, GenerationResponse, StreamChunk, ModelInfo, Message } from './types';
+import type {
+  AIProvider,
+  GenerationRequest,
+  GenerationResponse,
+  StreamChunk,
+  ModelInfo,
+  Message,
+  AgenticRequest,
+  AgenticResponse,
+  Tool,
+  ToolCall,
+  AgenticMessage,
+} from './types';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEBUG = true;
@@ -72,6 +84,93 @@ export class OpenRouterProvider implements AIProvider {
         completionTokens: data.usage.completion_tokens,
         totalTokens: data.usage.total_tokens,
       } : undefined,
+    };
+  }
+
+  /**
+   * Generate a response with tool calling support.
+   * Used for agentic flows (Lore Management, Agentic Retrieval, etc.)
+   */
+  async generateWithTools(request: AgenticRequest): Promise<AgenticResponse> {
+    log('generateWithTools called', {
+      model: request.model,
+      messagesCount: request.messages.length,
+      toolsCount: request.tools.length,
+      temperature: request.temperature,
+      maxTokens: request.maxTokens,
+    });
+
+    const requestBody: Record<string, unknown> = {
+      model: request.model,
+      messages: request.messages,
+      temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens ?? 2048,
+      tools: request.tools,
+      tool_choice: request.tool_choice ?? 'auto',
+      ...request.extraBody,
+    };
+
+    log('Sending tool-enabled request to OpenRouter...');
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'HTTP-Referer': 'https://aventura.app',
+        'X-Title': 'Aventura',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    log('Tool response received', { status: response.status, ok: response.ok });
+
+    if (!response.ok) {
+      const error = await response.text();
+      log('Tool API error', { status: response.status, error });
+      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    const choice = data.choices[0];
+    const message = choice?.message;
+
+    log('Tool response parsed', {
+      model: data.model,
+      finishReason: choice?.finish_reason,
+      hasToolCalls: !!message?.tool_calls,
+      toolCallCount: message?.tool_calls?.length ?? 0,
+      contentLength: message?.content?.length ?? 0,
+    });
+
+    // Extract reasoning if present (for models with extended thinking)
+    let reasoning: string | undefined;
+    if (data.reasoning) {
+      reasoning = data.reasoning;
+    }
+
+    // Parse tool calls if present
+    const toolCalls: ToolCall[] | undefined = message?.tool_calls?.map((tc: any) => ({
+      id: tc.id,
+      type: 'function' as const,
+      function: {
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      },
+    }));
+
+    return {
+      content: message?.content ?? null,
+      model: data.model,
+      tool_calls: toolCalls,
+      finish_reason: choice?.finish_reason ?? 'stop',
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens,
+        reasoningTokens: data.usage.reasoning_tokens,
+      } : undefined,
+      reasoning,
     };
   }
 

@@ -6,9 +6,11 @@ import { MemoryService, type ChapterAnalysis, type ChapterSummary, type Retrieva
 import { SuggestionsService, type StorySuggestion, type SuggestionsResult } from './suggestions';
 import { ActionChoicesService, type ActionChoice, type ActionChoicesResult } from './actionChoices';
 import { StyleReviewerService, type StyleReviewResult } from './styleReviewer';
+import { LoreManagementService, type LoreManagementSettings } from './loreManagement';
+import { AgenticRetrievalService, type AgenticRetrievalSettings, type AgenticRetrievalResult } from './agenticRetrieval';
 import { ContextBuilder, type ContextResult, type ContextConfig, DEFAULT_CONTEXT_CONFIG } from './context';
 import type { Message, GenerationResponse, StreamChunk } from './types';
-import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Chapter, MemoryConfig } from '$lib/types';
+import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Chapter, MemoryConfig, Entry, LoreManagementResult } from '$lib/types';
 
 const DEBUG = true;
 
@@ -450,6 +452,90 @@ class AIService {
     });
 
     return result;
+  }
+
+  /**
+   * Run a lore management session.
+   * Per design doc section 3.4: Lore Management Mode
+   * This is an on-demand agentic system that reviews and updates lorebook entries.
+   */
+  async runLoreManagement(
+    storyId: string,
+    entries: Entry[],
+    recentMessages: StoryEntry[],
+    chapters: Chapter[],
+    callbacks: {
+      onCreateEntry: (entry: Entry) => Promise<void>;
+      onUpdateEntry: (id: string, updates: Partial<Entry>) => Promise<void>;
+      onDeleteEntry: (id: string) => Promise<void>;
+      onMergeEntries: (entryIds: string[], mergedEntry: Entry) => Promise<void>;
+      onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>;
+    }
+  ): Promise<LoreManagementResult> {
+    log('runLoreManagement called', {
+      storyId,
+      entriesCount: entries.length,
+      recentMessagesCount: recentMessages.length,
+      chaptersCount: chapters.length,
+    });
+
+    const provider = this.getProvider();
+    const loreManager = new LoreManagementService(provider);
+
+    return await loreManager.runSession({
+      storyId,
+      entries,
+      recentMessages,
+      chapters,
+      ...callbacks,
+    });
+  }
+
+  /**
+   * Run agentic retrieval to gather context for the current situation.
+   * Per design doc section 3.1.4: Agentic Retrieval (Optional)
+   * Used for long stories or complex queries where static retrieval is insufficient.
+   */
+  async runAgenticRetrieval(
+    userInput: string,
+    recentEntries: StoryEntry[],
+    chapters: Chapter[],
+    entries: Entry[],
+    onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>
+  ): Promise<AgenticRetrievalResult> {
+    log('runAgenticRetrieval called', {
+      userInputLength: userInput.length,
+      recentEntriesCount: recentEntries.length,
+      chaptersCount: chapters.length,
+      entriesCount: entries.length,
+    });
+
+    const provider = this.getProvider();
+    const retrieval = new AgenticRetrievalService(provider);
+
+    return await retrieval.runRetrieval(
+      { userInput, recentEntries, chapters, entries },
+      onQueryChapter
+    );
+  }
+
+  /**
+   * Determine if agentic retrieval should be used based on story size.
+   * Returns true if chapters exceed threshold and agentic retrieval is enabled.
+   */
+  shouldUseAgenticRetrieval(chapters: Chapter[]): boolean {
+    const agenticSettings = settings.systemServicesSettings.agenticRetrieval;
+    if (!agenticSettings?.enabled) {
+      return false;
+    }
+    return chapters.length > (agenticSettings.agenticThreshold ?? 30);
+  }
+
+  /**
+   * Format agentic retrieval result for prompt injection.
+   */
+  formatAgenticRetrievalForPrompt(result: AgenticRetrievalResult): string {
+    return AgenticRetrievalService.formatForPromptInjection(result);
   }
 
   /**

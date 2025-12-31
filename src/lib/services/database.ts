@@ -1,5 +1,20 @@
 import Database from '@tauri-apps/plugin-sql';
-import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Template, Chapter, Checkpoint, MemoryConfig } from '$lib/types';
+import type {
+  Story,
+  StoryEntry,
+  Character,
+  Location,
+  Item,
+  StoryBeat,
+  Template,
+  Chapter,
+  Checkpoint,
+  MemoryConfig,
+  Entry,
+  EntryType,
+  EntryState,
+  EntryPreview,
+} from '$lib/types';
 
 class DatabaseService {
   private db: Database | null = null;
@@ -569,6 +584,171 @@ class DatabaseService {
     }
   }
 
+  // ===== Entry/Lorebook Operations (per design doc section 3.2) =====
+
+  async getEntries(storyId: string): Promise<Entry[]> {
+    const db = await this.getDb();
+    const results = await db.select<any[]>(
+      'SELECT * FROM entries WHERE story_id = ? ORDER BY created_at ASC',
+      [storyId]
+    );
+    return results.map(this.mapEntry);
+  }
+
+  async getEntriesByType(storyId: string, type: EntryType): Promise<Entry[]> {
+    const db = await this.getDb();
+    const results = await db.select<any[]>(
+      'SELECT * FROM entries WHERE story_id = ? AND type = ? ORDER BY created_at ASC',
+      [storyId, type]
+    );
+    return results.map(this.mapEntry);
+  }
+
+  async getEntryPreviews(storyId: string): Promise<EntryPreview[]> {
+    const db = await this.getDb();
+    const results = await db.select<any[]>(
+      'SELECT id, name, type, description, aliases FROM entries WHERE story_id = ? ORDER BY name ASC',
+      [storyId]
+    );
+    return results.map(row => ({
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      description: row.description || '',
+      aliases: row.aliases ? JSON.parse(row.aliases) : [],
+    }));
+  }
+
+  async getEntry(id: string): Promise<Entry | null> {
+    const db = await this.getDb();
+    const results = await db.select<any[]>(
+      'SELECT * FROM entries WHERE id = ?',
+      [id]
+    );
+    return results.length > 0 ? this.mapEntry(results[0]) : null;
+  }
+
+  async addEntry(entry: Entry): Promise<void> {
+    const db = await this.getDb();
+    await db.execute(
+      `INSERT INTO entries (
+        id, story_id, name, type, description, hidden_info, aliases,
+        state, adventure_state, creative_state, injection,
+        first_mentioned, last_mentioned, mention_count, created_by,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        entry.id,
+        entry.storyId,
+        entry.name,
+        entry.type,
+        entry.description,
+        entry.hiddenInfo,
+        JSON.stringify(entry.aliases),
+        JSON.stringify(entry.state),
+        entry.adventureState ? JSON.stringify(entry.adventureState) : null,
+        entry.creativeState ? JSON.stringify(entry.creativeState) : null,
+        JSON.stringify(entry.injection),
+        entry.firstMentioned,
+        entry.lastMentioned,
+        entry.mentionCount,
+        entry.createdBy,
+        entry.createdAt,
+        entry.updatedAt,
+      ]
+    );
+  }
+
+  async updateEntry(id: string, updates: Partial<Entry>): Promise<void> {
+    const db = await this.getDb();
+    const setClauses: string[] = ['updated_at = ?'];
+    const values: any[] = [Date.now()];
+
+    if (updates.name !== undefined) {
+      setClauses.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.type !== undefined) {
+      setClauses.push('type = ?');
+      values.push(updates.type);
+    }
+    if (updates.description !== undefined) {
+      setClauses.push('description = ?');
+      values.push(updates.description);
+    }
+    if (updates.hiddenInfo !== undefined) {
+      setClauses.push('hidden_info = ?');
+      values.push(updates.hiddenInfo);
+    }
+    if (updates.aliases !== undefined) {
+      setClauses.push('aliases = ?');
+      values.push(JSON.stringify(updates.aliases));
+    }
+    if (updates.state !== undefined) {
+      setClauses.push('state = ?');
+      values.push(JSON.stringify(updates.state));
+    }
+    if (updates.adventureState !== undefined) {
+      setClauses.push('adventure_state = ?');
+      values.push(updates.adventureState ? JSON.stringify(updates.adventureState) : null);
+    }
+    if (updates.creativeState !== undefined) {
+      setClauses.push('creative_state = ?');
+      values.push(updates.creativeState ? JSON.stringify(updates.creativeState) : null);
+    }
+    if (updates.injection !== undefined) {
+      setClauses.push('injection = ?');
+      values.push(JSON.stringify(updates.injection));
+    }
+    if (updates.firstMentioned !== undefined) {
+      setClauses.push('first_mentioned = ?');
+      values.push(updates.firstMentioned);
+    }
+    if (updates.lastMentioned !== undefined) {
+      setClauses.push('last_mentioned = ?');
+      values.push(updates.lastMentioned);
+    }
+    if (updates.mentionCount !== undefined) {
+      setClauses.push('mention_count = ?');
+      values.push(updates.mentionCount);
+    }
+
+    values.push(id);
+    await db.execute(
+      `UPDATE entries SET ${setClauses.join(', ')} WHERE id = ?`,
+      values
+    );
+  }
+
+  async deleteEntry(id: string): Promise<void> {
+    const db = await this.getDb();
+    await db.execute('DELETE FROM entries WHERE id = ?', [id]);
+  }
+
+  async mergeEntries(entryIds: string[], mergedEntry: Entry): Promise<void> {
+    const db = await this.getDb();
+
+    // Delete old entries
+    for (const id of entryIds) {
+      await this.deleteEntry(id);
+    }
+
+    // Add merged entry
+    await this.addEntry(mergedEntry);
+  }
+
+  async searchEntries(storyId: string, query: string): Promise<Entry[]> {
+    const db = await this.getDb();
+    const searchPattern = `%${query}%`;
+    const results = await db.select<any[]>(
+      `SELECT * FROM entries WHERE story_id = ? AND (
+        name LIKE ? OR description LIKE ? OR aliases LIKE ?
+      ) ORDER BY name ASC`,
+      [storyId, searchPattern, searchPattern, searchPattern]
+    );
+    return results.map(this.mapEntry);
+  }
+
   // Mapping functions
   private mapStory(row: any): Story {
     return {
@@ -697,6 +877,28 @@ class DatabaseService {
       storyBeatsSnapshot: row.story_beats_snapshot ? JSON.parse(row.story_beats_snapshot) : [],
       chaptersSnapshot: row.chapters_snapshot ? JSON.parse(row.chapters_snapshot) : [],
       createdAt: row.created_at,
+    };
+  }
+
+  private mapEntry(row: any): Entry {
+    return {
+      id: row.id,
+      storyId: row.story_id,
+      name: row.name,
+      type: row.type,
+      description: row.description || '',
+      hiddenInfo: row.hidden_info,
+      aliases: row.aliases ? JSON.parse(row.aliases) : [],
+      state: row.state ? JSON.parse(row.state) : { type: row.type },
+      adventureState: row.adventure_state ? JSON.parse(row.adventure_state) : null,
+      creativeState: row.creative_state ? JSON.parse(row.creative_state) : null,
+      injection: row.injection ? JSON.parse(row.injection) : { mode: 'keyword', keywords: [], priority: 0 },
+      firstMentioned: row.first_mentioned,
+      lastMentioned: row.last_mentioned,
+      mentionCount: row.mention_count ?? 0,
+      createdBy: row.created_by || 'user',
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     };
   }
 }

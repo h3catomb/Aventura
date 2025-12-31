@@ -161,6 +161,190 @@ export interface Checkpoint {
   createdAt: number;
 }
 
+// ===== Entry/Lorebook System (per design doc section 3.2) =====
+
+export type EntryType = 'character' | 'location' | 'item' | 'faction' | 'concept' | 'event';
+export type EntryInjectionMode = 'always' | 'keyword' | 'relevant' | 'never';
+export type EntryCreator = 'user' | 'ai' | 'import';
+
+/**
+ * Entry - Unified lorebook and tracker system.
+ * Combines static descriptions with dynamic state tracking.
+ * Per design doc section 3.2.1
+ */
+export interface Entry {
+  id: string;
+  storyId: string;
+  name: string;
+  type: EntryType;
+
+  // Static content
+  description: string;
+  hiddenInfo: string | null;     // Info protagonist doesn't know yet
+  aliases: string[];
+
+  // Dynamic state (type-specific)
+  state: EntryState;
+
+  // Mode-specific state (optional)
+  adventureState: AdventureEntryState | null;
+  creativeState: CreativeEntryState | null;
+
+  // Injection rules
+  injection: EntryInjection;
+
+  // Metadata
+  firstMentioned: string | null; // Entry ID where first mentioned
+  lastMentioned: string | null;  // Entry ID where last mentioned
+  mentionCount: number;
+  createdBy: EntryCreator;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface EntryInjection {
+  mode: EntryInjectionMode;
+  keywords: string[];
+  priority: number;  // Higher = inject first
+}
+
+// Base entry state (common fields)
+export interface BaseEntryState {
+  type: EntryType;
+}
+
+// Character-specific state (per design doc section 3.2.2)
+export interface CharacterEntryState extends BaseEntryState {
+  type: 'character';
+  isPresent: boolean;
+  lastSeenLocation: string | null;
+  currentDisposition: string | null;
+  relationship: {
+    level: number;              // -100 to 100
+    status: string;
+    history: RelationshipChange[];
+  };
+  knownFacts: string[];
+  revealedSecrets: string[];
+}
+
+export interface RelationshipChange {
+  description: string;
+  entryId: string;
+  timestamp: number;
+}
+
+// Location-specific state
+export interface LocationEntryState extends BaseEntryState {
+  type: 'location';
+  isCurrentLocation: boolean;
+  visitCount: number;
+  changes: { description: string; entryId: string }[];
+  presentCharacters: string[];  // Entry IDs
+  presentItems: string[];       // Entry IDs
+}
+
+// Item-specific state
+export interface ItemEntryState extends BaseEntryState {
+  type: 'item';
+  inInventory: boolean;
+  currentLocation: string | null;  // Entry ID or 'inventory'
+  condition: string | null;
+  uses: { action: string; result: string; entryId: string }[];
+}
+
+// Faction-specific state
+export interface FactionEntryState extends BaseEntryState {
+  type: 'faction';
+  playerStanding: number;       // -100 to 100
+  status: 'allied' | 'neutral' | 'hostile' | 'unknown';
+  knownMembers: string[];       // Entry IDs of known members
+}
+
+// Concept-specific state (lore concepts, magic systems, etc.)
+export interface ConceptEntryState extends BaseEntryState {
+  type: 'concept';
+  revealed: boolean;
+  comprehensionLevel: 'unknown' | 'basic' | 'intermediate' | 'advanced';
+  relatedEntries: string[];     // Entry IDs
+}
+
+// Event-specific state
+export interface EventEntryState extends BaseEntryState {
+  type: 'event';
+  occurred: boolean;
+  occurredAt: number | null;
+  witnesses: string[];          // Entry IDs
+  consequences: string[];
+}
+
+export type EntryState =
+  | CharacterEntryState
+  | LocationEntryState
+  | ItemEntryState
+  | FactionEntryState
+  | ConceptEntryState
+  | EventEntryState;
+
+// Adventure mode specific state
+export interface AdventureEntryState {
+  discovered: boolean;
+  interactedWith: boolean;
+  notes: string[];              // Player notes
+}
+
+// Creative writing mode specific state
+export interface CreativeEntryState {
+  arc: {
+    want: string | null;        // External goal (for characters)
+    need: string | null;        // Internal growth
+    flaw: string | null;        // What holds them back
+    currentState: string | null;
+  } | null;
+  thematicRole: string | null;
+  symbolism: string | null;
+}
+
+// Entry preview for listings (lighter than full Entry)
+export interface EntryPreview {
+  id: string;
+  name: string;
+  type: EntryType;
+  description: string;
+  aliases: string[];
+}
+
+// ===== Lore Management System (per design doc section 3.4) =====
+
+export type LoreChangeType = 'create' | 'update' | 'merge' | 'delete' | 'complete';
+
+export interface LoreChange {
+  type: LoreChangeType;
+  entry?: Entry;
+  previous?: Partial<Entry>;
+  mergedFrom?: string[];
+  summary?: string;
+}
+
+export interface LoreManagementResult {
+  changes: LoreChange[];
+  summary: string;
+  sessionId: string;
+}
+
+// ===== Agentic Session Tracking =====
+
+export interface AgenticSession {
+  id: string;
+  type: 'lore-management' | 'agentic-retrieval' | 'timeline-fill';
+  storyId: string;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  startedAt: number;
+  completedAt: number | null;
+  messageCount: number;
+  // Session is stored separately, not persisted to DB
+}
+
 // UI State types
 export type ActivePanel = 'story' | 'library' | 'settings' | 'templates';
 export type SidebarTab = 'characters' | 'locations' | 'inventory' | 'quests';
