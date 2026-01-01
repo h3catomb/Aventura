@@ -179,11 +179,14 @@
 
     try {
       // Prepare lorebook entries for setting expansion context
+      // Include ALL entries with full descriptions to avoid hallucinating contradictory details
       const lorebookContext = importedEntries.length > 0
         ? importedEntries.map(e => ({
             name: e.name,
             type: e.type,
             description: e.description,
+            // hiddenInfo not available in SillyTavern imports, but included if present
+            hiddenInfo: undefined,
           }))
         : undefined;
 

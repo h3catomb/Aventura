@@ -10,7 +10,7 @@ import { LoreManagementService, type LoreManagementSettings } from './loreManage
 import { AgenticRetrievalService, type AgenticRetrievalSettings, type AgenticRetrievalResult } from './agenticRetrieval';
 import { TimelineFillService, type TimelineFillSettings, type TimelineFillResult } from './timelineFill';
 import { ContextBuilder, type ContextResult, type ContextConfig, DEFAULT_CONTEXT_CONFIG } from './context';
-import { EntryRetrievalService, type EntryRetrievalResult } from './entryRetrieval';
+import { EntryRetrievalService, type EntryRetrievalResult, type ActivationTracker } from './entryRetrieval';
 import type { Message, GenerationResponse, StreamChunk } from './types';
 import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Chapter, MemoryConfig, Entry, LoreManagementResult } from '$lib/types';
 
@@ -474,12 +474,14 @@ class AIService {
    * @param userInput - The user's action/input
    * @param recentStoryEntries - Recent story entries for context
    * @param liveState - Live-tracked characters, locations, items (become Tier 1)
+   * @param activationTracker - Optional tracker for entry stickiness
    */
   async getRelevantLorebookEntries(
     entries: Entry[],
     userInput: string,
     recentStoryEntries: StoryEntry[],
-    liveState?: { characters: Character[]; locations: Location[]; items: Item[] }
+    liveState?: { characters: Character[]; locations: Location[]; items: Item[] },
+    activationTracker?: ActivationTracker
   ): Promise<EntryRetrievalResult> {
     log('getRelevantLorebookEntries called', {
       totalEntries: entries.length,
@@ -487,6 +489,7 @@ class AIService {
       liveCharacters: liveState?.characters.length ?? 0,
       liveLocations: liveState?.locations.length ?? 0,
       liveItems: liveState?.items.length ?? 0,
+      hasActivationTracker: !!activationTracker,
     });
 
     let provider: OpenRouterProvider | null = null;
@@ -501,7 +504,8 @@ class AIService {
       entries,
       userInput,
       recentStoryEntries,
-      liveState
+      liveState,
+      activationTracker
     );
 
     log('getRelevantLorebookEntries complete', {

@@ -1,7 +1,8 @@
 import type { ActivePanel, SidebarTab, UIState } from '$lib/types';
 import type { ActionChoice } from '$lib/services/ai/actionChoices';
 import type { StyleReviewResult } from '$lib/services/ai/styleReviewer';
-import type { EntryRetrievalResult } from '$lib/services/ai/entryRetrieval';
+import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/entryRetrieval';
+import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
 import { database } from '$lib/services/database';
 
 // Error state for retry functionality
@@ -46,6 +47,11 @@ class UIStore {
   // Lorebook debug state
   lastLorebookRetrieval = $state<EntryRetrievalResult | null>(null);
   lorebookDebugOpen = $state(false);
+
+  // Lorebook activation tracking for stickiness
+  // Maps entry ID -> last activation position (story entry index)
+  private activationData = $state<Record<string, number>>({});
+  private currentStoryPosition = $state(0);
 
   // Retry callback - set by ActionInput
   private retryCallback: (() => Promise<void>) | null = null;
@@ -211,6 +217,48 @@ class UIStore {
 
   toggleLorebookDebug() {
     this.lorebookDebugOpen = !this.lorebookDebugOpen;
+  }
+
+  // Activation tracking methods for lorebook stickiness
+
+  /**
+   * Create an activation tracker for the current story position.
+   * The tracker maintains references to our state so activations are persisted.
+   */
+  getActivationTracker(storyPosition: number): ActivationTracker {
+    this.currentStoryPosition = storyPosition;
+    const tracker = new SimpleActivationTracker(storyPosition);
+    tracker.loadActivationData(this.activationData);
+    return tracker;
+  }
+
+  /**
+   * Update activation data after retrieval completes.
+   * Called with the tracker that was modified during retrieval.
+   */
+  updateActivationData(tracker: SimpleActivationTracker) {
+    this.activationData = tracker.getActivationData();
+    // Prune old activations (beyond max stickiness of 10 turns)
+    tracker.pruneOldActivations(10);
+    this.activationData = tracker.getActivationData();
+  }
+
+  /**
+   * Clear activation data (e.g., when switching stories).
+   */
+  clearActivationData() {
+    this.activationData = {};
+    this.currentStoryPosition = 0;
+  }
+
+  /**
+   * Get current activation data for debugging.
+   */
+  getActivationDebugInfo(): { data: Record<string, number>; position: number } {
+    return {
+      data: { ...this.activationData },
+      position: this.currentStoryPosition,
+    };
   }
 }
 

@@ -143,7 +143,7 @@ Respond with valid JSON:
 export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
   return {
     settingExpansion: {
-      model: 'xiaomi/mimo-v2-flash:free', // mimo-v2-flash with reasoning for world elaboration
+      model: 'x-ai/grok-4-fast', // Fast model for world elaboration
       systemPrompt: DEFAULT_PROMPTS.settingExpansion,
       temperature: 0.8,
       maxTokens: 2000,
@@ -292,7 +292,7 @@ class ScenarioService {
     genre: Genre,
     customGenre?: string,
     overrides?: ProcessSettings,
-    lorebookEntries?: { name: string; type: string; description: string }[]
+    lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[]
   ): Promise<ExpandedSetting> {
     log('expandSetting called', { seed, genre, hasOverrides: !!overrides, lorebookEntries: lorebookEntries?.length ?? 0 });
 
@@ -301,23 +301,32 @@ class ScenarioService {
 
     const systemPrompt = overrides?.systemPrompt || DEFAULT_PROMPTS.settingExpansion;
 
-    // Build lorebook context if entries are provided
+    // Build lorebook context if entries are provided - include ALL entries with full descriptions
+    // to avoid hallucinating details that contradict established lore
     let lorebookContext = '';
     if (lorebookEntries && lorebookEntries.length > 0) {
-      const entriesByType: Record<string, { name: string; description: string }[]> = {};
+      const entriesByType: Record<string, { name: string; description: string; hiddenInfo?: string }[]> = {};
       for (const entry of lorebookEntries) {
         if (!entriesByType[entry.type]) {
           entriesByType[entry.type] = [];
         }
-        entriesByType[entry.type].push({ name: entry.name, description: entry.description });
+        entriesByType[entry.type].push({
+          name: entry.name,
+          description: entry.description,
+          hiddenInfo: entry.hiddenInfo,
+        });
       }
 
-      lorebookContext = '\n\n## Existing Lore (from imported lorebook)\nIncorporate these established elements into the setting:\n';
+      lorebookContext = '\n\n## Existing Lore (from imported lorebook)\nThese are established canon elements. The expanded setting MUST be consistent with all of this lore:\n';
       for (const [type, entries] of Object.entries(entriesByType)) {
         if (entries.length > 0) {
           lorebookContext += `\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s:\n`;
-          for (const entry of entries.slice(0, 15)) { // Limit per type to avoid token overflow
-            lorebookContext += `- **${entry.name}**: ${entry.description.substring(0, 200)}${entry.description.length > 200 ? '...' : ''}\n`;
+          for (const entry of entries) {
+            lorebookContext += `- **${entry.name}**: ${entry.description}`;
+            if (entry.hiddenInfo) {
+              lorebookContext += ` [Hidden lore: ${entry.hiddenInfo}]`;
+            }
+            lorebookContext += '\n';
           }
         }
       }
@@ -338,9 +347,7 @@ Expand this into a rich, detailed world suitable for interactive storytelling.${
       }
     ];
 
-    // Use reasoning for mimo models
-    const model = overrides?.model || 'xiaomi/mimo-v2-flash:free';
-    const isMimo = model.includes('mimo');
+    const model = overrides?.model || 'x-ai/grok-4-fast';
 
     const response = await provider.generateResponse({
       messages,
@@ -349,7 +356,6 @@ Expand this into a rich, detailed world suitable for interactive storytelling.${
       maxTokens: overrides?.maxTokens ?? 2000,
       extraBody: {
         provider: SCENARIO_PROVIDER,
-        ...(isMimo && { reasoning: { max_tokens: 8000 } }),
       },
     });
 

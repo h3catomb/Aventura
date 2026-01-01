@@ -3,6 +3,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { settings } from '$lib/stores/settings.svelte';
   import { aiService } from '$lib/services/ai';
+  import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
   import { Send, Wand2, MessageSquare, Brain, Sparkles, Feather, RefreshCw, X } from 'lucide-svelte';
   import type { Chapter } from '$lib/types';
   import type { StorySuggestion } from '$lib/services/ai/suggestions';
@@ -373,14 +374,21 @@
 
       // Task 2: Lorebook entry retrieval (Tier 3 LLM selection runs here)
       // Pass live-tracked entities for Tier 1 injection
+      // Also pass activation tracker for stickiness calculations
       if (story.lorebookEntries.length > 0 || story.characters.length > 0 || story.locations.length > 0 || story.items.length > 0) {
         retrievalTasks.push((async () => {
           try {
+            // Create activation tracker for stickiness
+            // Current position is the number of story entries (next entry will be at this index)
+            const storyPosition = story.entries.length;
+            const activationTracker = ui.getActivationTracker(storyPosition) as SimpleActivationTracker;
+
             log('Starting lorebook retrieval...', {
               lorebookEntries: story.lorebookEntries.length,
               liveCharacters: story.characters.length,
               liveLocations: story.locations.length,
               liveItems: story.items.length,
+              storyPosition,
             });
             const entryResult = await aiService.getRelevantLorebookEntries(
               story.lorebookEntries,
@@ -390,11 +398,14 @@
                 characters: story.characters,
                 locations: story.locations,
                 items: story.items,
-              }
+              },
+              activationTracker
             );
             lorebookContext = entryResult.contextBlock;
             // Store retrieval result for debug panel
             ui.setLastLorebookRetrieval(entryResult);
+            // Update activation data with recorded activations
+            ui.updateActivationData(activationTracker);
             log('Lorebook retrieval complete', {
               tier1: entryResult.tier1.length,
               tier2: entryResult.tier2.length,

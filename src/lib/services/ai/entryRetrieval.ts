@@ -21,6 +21,34 @@ export interface LiveWorldState {
   items: Item[];
 }
 
+/**
+ * Stickiness duration by entry type (in story entries/turns).
+ * After an entry is activated, it stays in Tier 1 for this many turns.
+ * Each new activation resets the timer.
+ */
+export const STICKINESS_BY_TYPE: Record<EntryType, number> = {
+  concept: 5,   // Magic systems, world rules - foundational context
+  faction: 4,   // Faction dynamics persist during dealings
+  character: 3, // Recently mentioned NPCs stay in context
+  location: 3,  // Nearby/mentioned locations
+  event: 2,     // Historical references fade quickly
+  item: 2,      // Items are situational
+};
+
+
+/**
+ * Activation tracking - maps entry ID to the story position when it was last activated.
+ * Used for stickiness calculations.
+ */
+export interface ActivationTracker {
+  /** Get the last activation position for an entry */
+  getLastActivation(entryId: string): number | null;
+  /** Record that an entry was activated at the current position */
+  recordActivation(entryId: string, position: number): void;
+  /** Get current story position */
+  currentPosition: number;
+}
+
 const DEBUG = true;
 
 function log(...args: any[]) {
@@ -79,6 +107,7 @@ export class EntryRetrievalService {
    *   - Live-tracked locations (current location)
    *   - Live-tracked items (in inventory)
    *   - Lorebook entries with injection.mode === 'always'
+   *   - "Sticky" entries (recently activated via Tier 2/3, duration based on type)
    * Tier 2: Keyword matched (name/aliases/keywords match user input or recent story)
    * Tier 3: LLM selection (remaining entries evaluated by LLM for relevance)
    */
@@ -86,12 +115,16 @@ export class EntryRetrievalService {
     entries: Entry[],
     userInput: string,
     recentStoryEntries: StoryEntry[],
-    liveState?: LiveWorldState
+    liveState?: LiveWorldState,
+    activationTracker?: ActivationTracker
   ): Promise<EntryRetrievalResult> {
+    const currentPosition = activationTracker?.currentPosition ?? recentStoryEntries.length;
+
     log('getRelevantEntries called', {
       totalEntries: entries.length,
       userInputLength: userInput.length,
       recentCount: recentStoryEntries.length,
+      currentPosition,
       liveCharacters: liveState?.characters.length ?? 0,
       liveLocations: liveState?.locations.length ?? 0,
       liveItems: liveState?.items.length ?? 0,
@@ -104,8 +137,8 @@ export class EntryRetrievalService {
       .join(' ');
     const searchContent = `${userInput} ${recentContent}`.toLowerCase();
 
-    // Tier 1: Live-tracked entities + lorebook entries with always/state-based injection
-    const tier1 = this.getTier1Entries(entries, liveState);
+    // Tier 1: Live-tracked entities + always-inject + sticky entries
+    const tier1 = this.getTier1Entries(entries, liveState, activationTracker, currentPosition);
     log('Tier 1 entries (always active):', tier1.length, tier1.map(e => e.entry.name));
 
     // Get IDs already in tier 1
@@ -132,6 +165,17 @@ export class EntryRetrievalService {
       log('Sending remaining entries to LLM for selection:', remainingEntries.length);
       tier3 = await this.getLLMSelectedEntries(remainingEntries, userInput, recentStoryEntries);
       log('Tier 3 entries (LLM selected):', tier3.length, tier3.map(e => e.entry.name));
+    }
+
+    // Record activations for Tier 2 and Tier 3 entries (for stickiness tracking)
+    if (activationTracker) {
+      for (const retrieved of [...tier2, ...tier3]) {
+        // Don't record activations for live entities (they have synthetic IDs)
+        if (!retrieved.entry.id.startsWith('live-')) {
+          activationTracker.recordActivation(retrieved.entry.id, currentPosition);
+        }
+      }
+      log('Recorded activations for', tier2.length + tier3.length, 'entries at position', currentPosition);
     }
 
     // Combine and sort by priority
@@ -200,51 +244,66 @@ export class EntryRetrievalService {
    * Lorebook entries:
    * - Entries with injection.mode === 'always'
    * - Entries with state-based conditions (legacy, for imported lorebooks with state)
+   * - "Sticky" entries (recently activated via Tier 2/3, duration based on entry type)
    */
-  private getTier1Entries(entries: Entry[], liveState?: LiveWorldState): RetrievedEntry[] {
+  private getTier1Entries(
+    entries: Entry[],
+    liveState?: LiveWorldState,
+    activationTracker?: ActivationTracker,
+    currentPosition?: number
+  ): RetrievedEntry[] {
     const result: RetrievedEntry[] = [];
+    const includedIds = new Set<string>();
 
     // First, add live-tracked entities (these are the primary Tier 1 sources)
     if (liveState) {
       // Active characters
       for (const char of liveState.characters) {
         if (char.status === 'active') {
+          const entry = this.characterToEntry(char);
           result.push({
-            entry: this.characterToEntry(char),
+            entry,
             tier: 1,
             priority: 95,
             matchReason: 'active character',
           });
+          includedIds.add(entry.id);
         }
       }
 
       // Current location
       for (const loc of liveState.locations) {
         if (loc.current) {
+          const entry = this.locationToEntry(loc);
           result.push({
-            entry: this.locationToEntry(loc),
+            entry,
             tier: 1,
             priority: 100,
             matchReason: 'current location',
           });
+          includedIds.add(entry.id);
         }
       }
 
       // Items in inventory
       for (const item of liveState.items) {
         if (item.location === 'inventory') {
+          const entry = this.itemToEntry(item);
           result.push({
-            entry: this.itemToEntry(item),
+            entry,
             tier: 1,
             priority: 80,
             matchReason: 'in inventory',
           });
+          includedIds.add(entry.id);
         }
       }
     }
 
-    // Then, add lorebook entries with always-inject mode
+    // Then, process lorebook entries
     for (const entry of entries) {
+      if (includedIds.has(entry.id)) continue;
+
       let shouldInclude = false;
       let priority = 0;
       let reason = '';
@@ -290,6 +349,27 @@ export class EntryRetrievalService {
         }
       }
 
+      // Check stickiness (recently activated entries stay in Tier 1)
+      // This is the primary mechanism for keeping relevant entries in context:
+      // - Entries are first selected via Tier 2 (keyword) or Tier 3 (LLM)
+      // - Once selected, they become "sticky" and stay in Tier 1 for N turns based on type
+      // - This avoids the problem of timestamp-based checks promoting all newly imported entries
+      if (!shouldInclude && activationTracker && currentPosition !== undefined) {
+        const lastActivation = activationTracker.getLastActivation(entry.id);
+        if (lastActivation !== null) {
+          const stickiness = STICKINESS_BY_TYPE[entry.type];
+          const turnsSinceActivation = currentPosition - lastActivation;
+
+          if (turnsSinceActivation <= stickiness) {
+            shouldInclude = true;
+            // Priority decreases as stickiness fades
+            const fadeRatio = 1 - (turnsSinceActivation / (stickiness + 1));
+            priority = Math.max(priority, Math.round(60 + fadeRatio * 20)); // 60-80 range
+            reason = `sticky (${entry.type}, ${stickiness - turnsSinceActivation} turns left)`;
+          }
+        }
+      }
+
       if (shouldInclude) {
         result.push({
           entry,
@@ -297,6 +377,7 @@ export class EntryRetrievalService {
           priority,
           matchReason: reason,
         });
+        includedIds.add(entry.id);
       }
     }
 
@@ -643,8 +724,54 @@ export async function getRelevantEntries(
   userInput: string,
   recentStoryEntries: StoryEntry[],
   provider?: OpenRouterProvider,
-  liveState?: LiveWorldState
+  liveState?: LiveWorldState,
+  activationTracker?: ActivationTracker
 ): Promise<EntryRetrievalResult> {
   const service = new EntryRetrievalService(provider || null);
-  return service.getRelevantEntries(entries, userInput, recentStoryEntries, liveState);
+  return service.getRelevantEntries(entries, userInput, recentStoryEntries, liveState, activationTracker);
+}
+
+/**
+ * Simple in-memory activation tracker implementation.
+ * Tracks when lorebook entries were last activated for stickiness calculations.
+ */
+export class SimpleActivationTracker implements ActivationTracker {
+  private activations = new Map<string, number>();
+  public currentPosition: number;
+
+  constructor(currentPosition: number) {
+    this.currentPosition = currentPosition;
+  }
+
+  getLastActivation(entryId: string): number | null {
+    return this.activations.get(entryId) ?? null;
+  }
+
+  recordActivation(entryId: string, position: number): void {
+    this.activations.set(entryId, position);
+  }
+
+  /** Update the current position (call this each turn) */
+  setPosition(position: number): void {
+    this.currentPosition = position;
+  }
+
+  /** Get all activation data (for persistence) */
+  getActivationData(): Record<string, number> {
+    return Object.fromEntries(this.activations);
+  }
+
+  /** Load activation data (from persistence) */
+  loadActivationData(data: Record<string, number>): void {
+    this.activations = new Map(Object.entries(data));
+  }
+
+  /** Clear old activations that are beyond any stickiness window */
+  pruneOldActivations(maxStickiness: number = 10): void {
+    for (const [entryId, position] of this.activations) {
+      if (this.currentPosition - position > maxStickiness) {
+        this.activations.delete(entryId);
+      }
+    }
+  }
 }
