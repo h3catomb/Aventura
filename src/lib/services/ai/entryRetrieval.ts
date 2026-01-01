@@ -38,7 +38,7 @@ export const DEFAULT_ENTRY_RETRIEVAL_CONFIG: EntryRetrievalConfig = {
   maxTier3Entries: 10,
   enableLLMSelection: true,
   recentEntriesCount: 5,
-  tier3Model: 'google/gemini-2.0-flash-001',
+  tier3Model: 'x-ai/grok-4.1-fast',
 };
 
 export interface RetrievedEntry {

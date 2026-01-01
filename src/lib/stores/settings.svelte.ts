@@ -225,7 +225,7 @@ export interface ClassifierSettings {
 
 export function getDefaultClassifierSettings(): ClassifierSettings {
   return {
-    model: 'deepseek/deepseek-v3.2',
+    model: 'x-ai/grok-4.1-fast',
     temperature: 0.3,
     maxTokens: 2000,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.classifier,
@@ -372,7 +372,7 @@ export interface TimelineFillSettings {
 export function getDefaultTimelineFillSettings(): TimelineFillSettings {
   return {
     enabled: true, // Default: enabled (this is the default over agentic retrieval)
-    model: 'deepseek/deepseek-v3.2',
+    model: 'x-ai/grok-4.1-fast',
     temperature: 0.3,
     maxQueries: 5,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.timelineFill,
