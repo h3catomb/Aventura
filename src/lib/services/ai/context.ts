@@ -342,7 +342,7 @@ If no entries are relevant, return: []`;
         messages: [{ role: 'user', content: prompt }],
         model: 'google/gemini-2.0-flash-001', // Fast model for selection
         temperature: 0.1,
-        maxTokens: 100,
+        maxTokens: 8192,
       });
 
       // Parse response as JSON array

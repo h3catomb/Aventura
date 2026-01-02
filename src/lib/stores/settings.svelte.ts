@@ -292,7 +292,7 @@ export function getDefaultClassifierSettings(): ClassifierSettings {
   return {
     model: 'x-ai/grok-4-fast',
     temperature: 0.3,
-    maxTokens: 2000,
+    maxTokens: 8192,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.classifier,
   };
 }
@@ -328,7 +328,7 @@ export function getDefaultSuggestionsSettings(): SuggestionsSettings {
   return {
     model: 'deepseek/deepseek-v3.2',
     temperature: 0.7,
-    maxTokens: 500,
+    maxTokens: 8192,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.suggestions,
   };
 }
@@ -348,7 +348,7 @@ export function getDefaultStyleReviewerSettings(): StyleReviewerSettings {
     enabled: true, // Enabled by default per requirements
     model: 'x-ai/grok-4.1-fast',
     temperature: 0.3,
-    maxTokens: 1500,
+    maxTokens: 8192,
     triggerInterval: 5,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.styleReviewer,
   };

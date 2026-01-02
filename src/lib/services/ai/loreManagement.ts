@@ -463,7 +463,7 @@ export class LoreManagementService {
           messages,
           model: this.model,
           temperature: this.temperature,
-          maxTokens: 2048,
+          maxTokens: 8192,
           tools: LORE_MANAGEMENT_TOOLS,
           tool_choice: 'auto',
           extraBody: {
@@ -891,8 +891,11 @@ Use the available tools to make necessary changes, then call finish_lore_managem
   }
 
   private normalizeState(type: EntryType, state?: EntryState | null): EntryState {
+    if (state && typeof state === 'object' && 'type' in state) {
+      return state;
+    }
     if (state && typeof state === 'object') {
-      return state.type ? state : { ...state, type } as EntryState;
+      return { ...(state as Omit<EntryState, 'type'>), type } as EntryState;
     }
     return this.createDefaultState(type);
   }

@@ -241,7 +241,7 @@ export class AgenticRetrievalService {
           messages,
           model: this.model,
           temperature: this.temperature,
-          maxTokens: 1500,
+          maxTokens: 8192,
           tools: RETRIEVAL_TOOLS,
           tool_choice: 'auto',
           extraBody: {

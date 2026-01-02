@@ -248,7 +248,7 @@ Respond with ONLY valid JSON in this exact format:
           { role: 'user', content: prompt },
         ],
         temperature: 0.1,
-        maxTokens: 1000,
+        maxTokens: 8192,
         extraBody: {
           reasoning: { effort: 'high' },
         },

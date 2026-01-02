@@ -5,6 +5,7 @@ import { ui } from './ui.svelte';
 import type { ClassificationResult } from '$lib/services/ai/classifier';
 import { DEFAULT_MEMORY_CONFIG } from '$lib/services/ai/memory';
 import { convertToEntries, type ImportedEntry } from '$lib/services/lorebookImporter';
+import { countTokens } from '$lib/services/tokenizer';
 import {
   eventBus,
   emitStoryLoaded,
@@ -128,8 +129,8 @@ class StoryStore {
   }
 
   /**
-   * Calculate approximate token count since last chapter.
-   * Uses entry metadata tokenCount if available, otherwise estimates from content length.
+   * Calculate token count since last chapter.
+   * Uses stored token count (accurate) or calculates via tokenizer for legacy entries.
    */
   get tokensSinceLastChapter(): number {
     const visibleEntries = this.entries.slice(this.lastChapterEndIndex);
@@ -138,8 +139,8 @@ class StoryStore {
       if (entry.metadata?.tokenCount) {
         return total + entry.metadata.tokenCount;
       }
-      // Estimate: ~4 characters per token (rough approximation)
-      return total + Math.ceil(entry.content.length / 4);
+      // Fallback for legacy entries without stored token count
+      return total + countTokens(entry.content);
     }, 0);
   }
 
@@ -162,7 +163,8 @@ class StoryStore {
       if (entry.metadata?.tokenCount) {
         return total + entry.metadata.tokenCount;
       }
-      return total + Math.ceil(entry.content.length / 4);
+      // Fallback for legacy entries without stored token count
+      return total + countTokens(entry.content);
     }, 0);
   }
 
@@ -413,6 +415,7 @@ class StoryStore {
 
       // Add opening scene as first narration entry
       if (state.openingScene) {
+        const tokenCount = countTokens(state.openingScene);
         await database.addStoryEntry({
           id: crypto.randomUUID(),
           storyId: storyData.id,
@@ -420,7 +423,7 @@ class StoryStore {
           content: state.openingScene,
           parentId: null,
           position: 0,
-          metadata: { source: 'template' },
+          metadata: { source: 'template', tokenCount },
         });
       }
     }
@@ -437,6 +440,9 @@ class StoryStore {
       throw new Error('No story loaded');
     }
 
+    // Count tokens for accurate auto-summarize threshold detection
+    const tokenCount = countTokens(content);
+
     const position = await database.getNextEntryPosition(this.currentStory.id);
     const entry = await database.addStoryEntry({
       id: crypto.randomUUID(),
@@ -445,7 +451,7 @@ class StoryStore {
       content,
       parentId: null,
       position,
-      metadata: metadata ?? null,
+      metadata: { ...metadata, tokenCount },
     });
 
     this.entries = [...this.entries, entry];
@@ -460,9 +466,14 @@ class StoryStore {
   async updateEntry(entryId: string, content: string): Promise<void> {
     if (!this.currentStory) throw new Error('No story loaded');
 
-    await database.updateStoryEntry(entryId, { content });
+    // Recalculate token count when content changes
+    const tokenCount = countTokens(content);
+    const existingEntry = this.entries.find(e => e.id === entryId);
+    const updatedMetadata = { ...existingEntry?.metadata, tokenCount };
+
+    await database.updateStoryEntry(entryId, { content, metadata: updatedMetadata });
     this.entries = this.entries.map(e =>
-      e.id === entryId ? { ...e, content } : e
+      e.id === entryId ? { ...e, content, metadata: updatedMetadata } : e
     );
 
     // Update story's updatedAt
@@ -1232,6 +1243,7 @@ class StoryStore {
 
     // Add opening scene as first narration entry
     if (data.openingScene) {
+      const tokenCount = countTokens(data.openingScene);
       await database.addStoryEntry({
         id: crypto.randomUUID(),
         storyId,
@@ -1239,7 +1251,7 @@ class StoryStore {
         content: data.openingScene,
         parentId: null,
         position: 0,
-        metadata: { source: 'wizard' },
+        metadata: { source: 'wizard', tokenCount },
       });
       log('Added opening scene');
     }

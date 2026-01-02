@@ -44,7 +44,7 @@ export class OpenRouterProvider implements AIProvider {
       model: request.model,
       messages: request.messages,
       temperature: request.temperature ?? 0.8,
-      max_tokens: request.maxTokens ?? 1024,
+      max_tokens: request.maxTokens ?? 8192,
       stop: request.stopSequences,
       ...request.extraBody, // Spread provider-specific options (e.g., reasoning)
     };
@@ -110,7 +110,7 @@ export class OpenRouterProvider implements AIProvider {
       model: request.model,
       messages: request.messages,
       temperature: request.temperature ?? 0.7,
-      max_tokens: request.maxTokens ?? 2048,
+      max_tokens: request.maxTokens ?? 8192,
       tools: request.tools,
       tool_choice: request.tool_choice ?? 'auto',
       ...request.extraBody,
@@ -208,7 +208,7 @@ export class OpenRouterProvider implements AIProvider {
       model: request.model,
       messages: request.messages,
       temperature: request.temperature ?? 0.8,
-      max_tokens: request.maxTokens ?? 1024,
+      max_tokens: request.maxTokens ?? 8192,
       stop: request.stopSequences,
       stream: true,
       ...request.extraBody, // Spread provider-specific options (e.g., reasoning)

@@ -545,7 +545,7 @@ Return an empty array [] if none are relevant.`;
         messages: [{ role: 'user', content: prompt }],
         model: this.config.tier3Model,
         temperature: 0.2,
-        maxTokens: 300,
+        maxTokens: 8192,
       });
 
       log('LLM selection response:', response.content);

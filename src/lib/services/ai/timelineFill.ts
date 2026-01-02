@@ -194,7 +194,7 @@ Return ONLY the JSON array, no code fences or commentary.`;
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
-        maxTokens: 1000,
+        maxTokens: 8192,
       });
 
       return this.parseQueriesResponse(response.content, chapters);
@@ -362,7 +362,7 @@ Provide a concise, factual answer based only on the chapter content above. If th
           { role: 'user', content: prompt },
         ],
         temperature: 0.2,
-        maxTokens: 500,
+        maxTokens: 8192,
       });
 
       return {

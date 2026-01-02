@@ -147,7 +147,7 @@ export class MemoryService {
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
-        maxTokens: 500,
+        maxTokens: 8192,
       });
 
       const result = this.parseChapterAnalysis(response.content, startIndex, chapterEntries.length);
@@ -218,7 +218,7 @@ Respond with JSON:
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
-        maxTokens: 1000,
+        maxTokens: 8192,
       });
 
       return this.parseChapterSummary(response.content);
@@ -324,7 +324,7 @@ Guidelines:
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
-        maxTokens: 500,
+        maxTokens: 8192,
       });
 
       return this.parseRetrievalDecision(response.content, config.maxChaptersPerRetrieval);
