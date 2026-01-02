@@ -1,9 +1,46 @@
+// Reasoning detail types per OpenRouter API spec
+// https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+export type ReasoningDetailFormat =
+  | 'unknown'
+  | 'openai-responses-v1'
+  | 'xai-responses-v1'
+  | 'anthropic-claude-v1';
+
+export interface ReasoningDetailBase {
+  id?: string | null;
+  format?: ReasoningDetailFormat;
+  index?: number;
+}
+
+export interface ReasoningSummaryDetail extends ReasoningDetailBase {
+  type: 'reasoning.summary';
+  summary: string;
+}
+
+export interface ReasoningEncryptedDetail extends ReasoningDetailBase {
+  type: 'reasoning.encrypted';
+  data: string;
+}
+
+export interface ReasoningTextDetail extends ReasoningDetailBase {
+  type: 'reasoning.text';
+  text: string;
+  signature?: string | null;
+}
+
+export type ReasoningDetail =
+  | ReasoningSummaryDetail
+  | ReasoningEncryptedDetail
+  | ReasoningTextDetail;
+
 export interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
-  // Reasoning/thinking output if model supports it (e.g., minimax-m2.1)
-  // Only present for assistant messages
+  // Legacy reasoning string (for backwards compatibility)
   reasoning?: string | null;
+  // Structured reasoning details for preserving reasoning across tool calls
+  // Required for models like MiniMax M2.1, Claude 3.7+, OpenAI o-series
+  reasoning_details?: ReasoningDetail[];
 }
 
 // Extended message type for tool calling
@@ -11,8 +48,10 @@ export interface ToolCallMessage {
   role: 'assistant';
   content: string | null;
   tool_calls: ToolCall[];
-  // Reasoning/thinking output if model supports it (e.g., minimax-m2.1)
+  // Legacy reasoning string (for backwards compatibility)
   reasoning?: string | null;
+  // Structured reasoning details for preserving reasoning across tool calls
+  reasoning_details?: ReasoningDetail[];
 }
 
 export interface ToolResultMessage {
@@ -101,8 +140,11 @@ export interface AgenticResponse {
     totalTokens: number;
     reasoningTokens?: number;
   };
-  // Reasoning/thinking output if enabled
+  // Legacy reasoning string (for backwards compatibility)
   reasoning?: string;
+  // Structured reasoning details for preserving across tool calls
+  // This is what should be passed back to the API for context continuity
+  reasoning_details?: ReasoningDetail[];
 }
 
 export interface StreamChunk {

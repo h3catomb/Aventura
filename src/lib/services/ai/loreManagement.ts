@@ -409,7 +409,7 @@ export class LoreManagementService {
           extraBody: {
             // Enable reasoning for better decision-making
             reasoning: {
-              effort: 'medium',
+              effort: 'high',
             },
             // Use Minimax provider for best tool calling support
             provider: {
@@ -424,11 +424,16 @@ export class LoreManagementService {
           toolCallCount: response.tool_calls?.length ?? 0,
           finishReason: response.finish_reason,
           hasReasoning: !!response.reasoning,
+          hasReasoningDetails: !!response.reasoning_details,
+          reasoningDetailsCount: response.reasoning_details?.length ?? 0,
         });
 
         // Log reasoning if present (useful for debugging agent decisions)
         if (response.reasoning) {
           log('Agent reasoning:', response.reasoning.substring(0, 500));
+        }
+        if (response.reasoning_details) {
+          log('Agent reasoning_details count:', response.reasoning_details.length);
         }
 
         // Handle no tool calls - model may need prompting
@@ -444,6 +449,8 @@ export class LoreManagementService {
               role: 'assistant',
               content: response.content,
               reasoning: response.reasoning ?? null,
+              // Pass reasoning_details back for context continuity per OpenRouter docs
+              reasoning_details: response.reasoning_details,
             });
           }
 
@@ -469,12 +476,15 @@ export class LoreManagementService {
         // Reset counter on successful tool call
         consecutiveNoToolCalls = 0;
 
-        // Add assistant response to messages, including reasoning for context continuity
+        // Add assistant response to messages, including reasoning_details for context continuity
+        // Per OpenRouter docs: reasoning_details must be passed back unmodified for tool calling flows
+        // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
         messages.push({
           role: 'assistant',
           content: response.content,
           tool_calls: response.tool_calls,
-          reasoning: response.reasoning ?? null, // Pass reasoning back to maintain context
+          reasoning: response.reasoning ?? null, // Legacy field for backwards compatibility
+          reasoning_details: response.reasoning_details, // Required for context continuity
         });
 
         // Execute each tool call

@@ -149,10 +149,11 @@ export class OpenRouterProvider implements AIProvider {
       contentLength: message?.content?.length ?? 0,
       hasReasoning: !!message?.reasoning,
       reasoningLength: message?.reasoning?.length ?? 0,
+      hasReasoningDetails: !!message?.reasoning_details,
+      reasoningDetailsCount: message?.reasoning_details?.length ?? 0,
     });
 
-    // Extract reasoning if present (for models with extended thinking)
-    // OpenRouter returns reasoning in the message object per the API spec
+    // Extract legacy reasoning string if present (for backwards compatibility)
     let reasoning: string | undefined;
     if (message?.reasoning) {
       reasoning = message.reasoning;
@@ -160,6 +161,11 @@ export class OpenRouterProvider implements AIProvider {
       // Fallback to top-level reasoning if present
       reasoning = data.reasoning;
     }
+
+    // Extract reasoning_details array if present (for preserving reasoning across tool calls)
+    // Per OpenRouter docs: This is required for models like MiniMax M2.1, Claude 3.7+, OpenAI o-series
+    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    const reasoning_details = message?.reasoning_details ?? undefined;
 
     // Parse tool calls if present
     const toolCalls: ToolCall[] | undefined = message?.tool_calls?.map((tc: any) => ({
@@ -183,6 +189,7 @@ export class OpenRouterProvider implements AIProvider {
         reasoningTokens: data.usage.reasoning_tokens,
       } : undefined,
       reasoning,
+      reasoning_details,
     };
   }
 
