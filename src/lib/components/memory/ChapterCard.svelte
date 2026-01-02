@@ -82,13 +82,13 @@
   <!-- Header -->
   <div class="p-3 flex items-start justify-between gap-2">
     <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-surface-200">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span class="text-sm font-medium text-surface-200 shrink-0">
           Chapter {chapter.number}
         </span>
         {#if chapter.title}
-          <span class="text-sm text-surface-400">—</span>
-          <span class="text-sm text-primary-400 truncate">{chapter.title}</span>
+          <span class="text-sm text-surface-400 hidden sm:inline">—</span>
+          <span class="text-sm text-primary-400 truncate max-w-[150px] sm:max-w-none">{chapter.title}</span>
         {/if}
       </div>
     </div>

@@ -69,13 +69,13 @@
     </div>
 
     <!-- Token Count -->
-    <div class="flex items-center justify-between text-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-sm">
       <span class="text-surface-400">
         <span class="font-medium text-surface-200">{formatNumber(tokensOutsideBuffer)}</span>
         <span class="text-surface-500"> / {formatNumber(threshold)}</span>
         <span class="text-surface-500"> tokens</span>
       </span>
-      <span class="text-surface-500">
+      <span class="text-surface-500 text-xs sm:text-sm">
         {messagesSinceLastChapter} messages
         {#if bufferSize > 0}
           <span class="text-surface-600">({bufferSize} protected)</span>

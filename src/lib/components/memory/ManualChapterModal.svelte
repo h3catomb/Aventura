@@ -62,7 +62,7 @@
 
 <!-- Modal -->
 <div
-  class="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto"
+  class="fixed inset-x-2 sm:inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto max-h-[90vh] flex flex-col"
   transition:fly={{ y: 20, duration: 200 }}
 >
   <div class="bg-surface-800 rounded-xl shadow-xl overflow-hidden">
