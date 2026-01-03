@@ -1,5 +1,5 @@
 import type { OpenRouterProvider } from './openrouter';
-import type { StoryEntry, Character, Location, Item, StoryBeat } from '$lib/types';
+import type { StoryEntry, Character, Location, Item, StoryBeat, Entry } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 
 const DEBUG = true;
@@ -56,13 +56,15 @@ export class ActionChoicesService {
     recentEntries: StoryEntry[],
     worldState: WorldStateContext,
     narrativeResponse: string,
-    pov?: 'first' | 'second' | 'third'
+    pov?: 'first' | 'second' | 'third',
+    lorebookEntries?: Entry[]
   ): Promise<ActionChoicesResult> {
     log('generateChoices called', {
       recentEntriesCount: recentEntries.length,
       narrativeLength: narrativeResponse.length,
       currentLocation: worldState.currentLocation?.name,
       presentCharacters: worldState.characters.filter(c => c.status === 'active').length,
+      lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
     // Build context from world state
@@ -118,6 +120,23 @@ Match their vocabulary, tone, and phrasing patterns.`;
       povInstruction = 'Write actions in first person (e.g., "I examine the door", "I ask the merchant about...")';
     }
 
+    // Format lorebook entries for context
+    let lorebookContext = '';
+    if (lorebookEntries && lorebookEntries.length > 0) {
+      const entryDescriptions = lorebookEntries.slice(0, 12).map(e => {
+        let desc = `• ${e.name} (${e.type})`;
+        if (e.description) {
+          // Truncate long descriptions
+          const shortDesc = e.description.length > 100
+            ? e.description.slice(0, 100) + '...'
+            : e.description;
+          desc += `: ${shortDesc}`;
+        }
+        return desc;
+      }).join('\n');
+      lorebookContext = `\n## Active World Elements\nThese characters, locations, items, and concepts are currently relevant and can be referenced in action choices:\n${entryDescriptions}\n`;
+    }
+
     // Get protagonist name for the prompt
     const protagonistName = protagonist?.name || 'the player';
     const protagonistDesc = protagonist?.description ? ` (${protagonist.description})` : '';
@@ -143,7 +162,7 @@ Location: ${currentLoc?.name || 'Unknown'}${currentLoc?.description ? ` - ${curr
 NPCs Present: ${activeCharacters.length > 0 ? activeCharacters.map(c => c.name).join(', ') : 'None'}
 ${protagonistName}'s Inventory: ${inventoryItems.length > 0 ? inventoryItems.map(i => i.name).join(', ') : 'Empty'}
 Active Quests: ${activeQuests.length > 0 ? activeQuests.map(q => q.title).join(', ') : 'None'}
-
+${lorebookContext}
 ## Your Task
 Generate 3-4 distinct action choices for THE USER (playing as ${protagonistName}). Think like an RPG:
 - **Every choice should move the plot forward** - no passive waiting or stalling

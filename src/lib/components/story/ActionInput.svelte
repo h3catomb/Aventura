@@ -154,14 +154,19 @@
 
     ui.setActionChoicesLoading(true);
     try {
+      // Use only the lorebook entries that were activated for the previous response
+      // Extract the Entry objects from RetrievedEntry wrappers
+      const activeLorebookEntries = (ui.lastLorebookRetrieval?.all ?? []).map(r => r.entry);
+
       const result = await aiService.generateActionChoices(
         story.entries,
         worldState,
         narrativeResponse,
-        story.pov
+        story.pov,
+        activeLorebookEntries
       );
       ui.setActionChoices(result.choices, story.currentStory?.id);
-      log('Action choices generated:', result.choices.length);
+      log('Action choices generated:', result.choices.length, 'with', activeLorebookEntries.length, 'active lorebook entries');
     } catch (error) {
       log('Failed to generate action choices:', error);
       ui.clearActionChoices();

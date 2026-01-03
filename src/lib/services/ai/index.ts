@@ -351,17 +351,19 @@ class AIService {
     entries: StoryEntry[],
     worldState: WorldState,
     narrativeResponse: string,
-    pov?: 'first' | 'second' | 'third'
+    pov?: 'first' | 'second' | 'third',
+    lorebookEntries?: Entry[]
   ): Promise<ActionChoicesResult> {
     log('generateActionChoices called', {
       entriesCount: entries.length,
       narrativeLength: narrativeResponse.length,
       pov,
+      lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
     const provider = this.getProvider();
     const actionChoices = new ActionChoicesService(provider);
-    return await actionChoices.generateChoices(entries, worldState, narrativeResponse, pov);
+    return await actionChoices.generateChoices(entries, worldState, narrativeResponse, pov, lorebookEntries);
   }
 
   /**
