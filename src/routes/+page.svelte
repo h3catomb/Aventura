@@ -22,20 +22,28 @@
 
       // Check for updates on startup if enabled (don't await, run in background)
       if (settings.updateSettings.autoCheck) {
-        updaterService.checkForUpdates()
-          .then(async (updateInfo) => {
-            if (updateInfo.available) {
-              console.log(`[Updater] Update available: v${updateInfo.version}`);
-              await settings.setLastChecked(Date.now());
+        const { checkInterval, lastChecked, autoDownload } = settings.updateSettings;
+        const now = Date.now();
+        const shouldCheck = checkInterval <= 0
+          ? true
+          : !lastChecked || now - lastChecked >= checkInterval * 60 * 60 * 1000;
 
-              // Auto-download if enabled
-              if (settings.updateSettings.autoDownload) {
-                console.log('[Updater] Auto-downloading update...');
-                updaterService.downloadAndInstall().catch(console.error);
+        if (shouldCheck) {
+          updaterService.checkForUpdates()
+            .then(async (updateInfo) => {
+              await settings.setLastChecked(Date.now());
+              if (updateInfo.available) {
+                console.log(`[Updater] Update available: v${updateInfo.version}`);
+
+                // Auto-download if enabled
+                if (autoDownload) {
+                  console.log('[Updater] Auto-downloading update...');
+                  updaterService.downloadAndInstall().catch(console.error);
+                }
               }
-            }
-          })
-          .catch(console.error);
+            })
+            .catch(console.error);
+        }
       }
 
       initialized = true;

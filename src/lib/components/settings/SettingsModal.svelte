@@ -477,7 +477,7 @@
             <input
               type="range"
               min="256"
-              max="4096"
+              max="8192"
               step="128"
               value={settings.apiSettings.maxTokens}
               oninput={(e) => settings.setMaxTokens(parseInt(e.currentTarget.value))}
@@ -904,7 +904,7 @@
                           <input
                             type="range"
                             min="256"
-                            max="4096"
+                            max="8192"
                             step="128"
                             bind:value={settings.wizardSettings[process].maxTokens}
                             onchange={() => settings.saveWizardSettings()}
@@ -912,7 +912,7 @@
                           />
                           <div class="flex justify-between text-xs text-surface-500">
                             <span>256</span>
-                            <span>4096</span>
+                            <span>8192</span>
                           </div>
                         </div>
 

@@ -44,10 +44,12 @@ class UpdaterService {
         };
       }
 
+      this.updateAvailable = null;
       return { available: false };
     } catch (error) {
       console.error('[Updater] Check failed:', error);
-      return { available: false };
+      this.updateAvailable = null;
+      throw error;
     } finally {
       this.checking = false;
     }
@@ -93,7 +95,7 @@ class UpdaterService {
       return true;
     } catch (error) {
       console.error('[Updater] Download/install failed:', error);
-      return false;
+      throw error;
     } finally {
       this.downloading = false;
       this.progress = null;

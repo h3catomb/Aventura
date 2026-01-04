@@ -638,9 +638,6 @@ class SettingsStore {
         this.apiSettings.mainNarrativeProfileId = DEFAULT_OPENROUTER_PROFILE_ID;
       }
 
-      // Ensure default OpenRouter profile exists (migration for new/existing users)
-      await this.ensureDefaultOpenRouterProfile(apiKey || null);
-
       // Load UI settings
       const theme = await database.getSetting('theme');
       const fontSize = await database.getSetting('font_size');
@@ -724,6 +721,9 @@ class SettingsStore {
           this.updateSettings = getDefaultUpdateSettings();
         }
       }
+
+      // Ensure default OpenRouter profile exists (migration for new/existing users)
+      await this.ensureDefaultOpenRouterProfile(apiKey || null);
 
       // Migrate null profileIds to default OpenRouter profile
       await this.migrateNullProfileIds();
@@ -1144,15 +1144,15 @@ class SettingsStore {
     await database.setSetting('spellcheck_enabled', enabled.toString());
   }
 
-  //Return true if an API key is needed.
-  //If ANY profile has an API key, return false (no key needed).
+  //Return true if an API key is needed for main narrative generation.
   get needsApiKey(): boolean {
-    // Check if any profile has an API key
-    const hasProfileWithKey = this.apiSettings.profiles.some(p => p.apiKey && p.apiKey.length > 0);
-    if (hasProfileWithKey) return false;
+    const mainProfile = this.getMainNarrativeProfile() ?? this.getDefaultProfile();
+    if (mainProfile) {
+      return !mainProfile.apiKey || mainProfile.apiKey.length === 0;
+    }
 
     // Fall back to legacy check for pre-profile installations
-    return (!this.apiSettings.openaiApiKey && this.apiSettings.openaiApiURL == OPENROUTER_API_URL);
+    return (!this.apiSettings.openaiApiKey && this.apiSettings.openaiApiURL === OPENROUTER_API_URL);
   }
 
   // Wizard settings methods

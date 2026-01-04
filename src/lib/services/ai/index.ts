@@ -40,32 +40,31 @@ class AIService {
    */
   private getProvider() {
     const profileId = settings.apiSettings.mainNarrativeProfileId;
-    const apiSettings = settings.getApiSettingsForProfile(profileId);
-
-    log('Getting provider for main narrative', {
-      profileId,
-      apiKeyConfigured: !!apiSettings.openaiApiKey,
-    });
-
-    if (!apiSettings.openaiApiKey) {
-      throw new Error('No API key configured for main narrative profile');
-    }
-    return new OpenAIProvider(apiSettings);
+    return this.getProviderForProfileId(profileId, 'main narrative');
   }
 
   /**
    * Get a provider configured for a specific profile.
    * Used by services that have their own profile setting.
    */
-  getProviderForProfile(profileId: string) {
+  getProviderForProfile(profileId: string | null) {
+    const resolvedProfileId = profileId ?? settings.apiSettings.mainNarrativeProfileId;
+    return this.getProviderForProfileId(resolvedProfileId);
+  }
+
+  private getProviderForProfileId(profileId: string, contextLabel?: string) {
     const apiSettings = settings.getApiSettingsForProfile(profileId);
 
     log('Getting provider for profile', {
       profileId,
       apiKeyConfigured: !!apiSettings.openaiApiKey,
+      context: contextLabel,
     });
 
     if (!apiSettings.openaiApiKey) {
+      if (contextLabel) {
+        throw new Error(`No API key configured for ${contextLabel} profile`);
+      }
       throw new Error(`No API key configured for profile: ${profileId}`);
     }
     return new OpenAIProvider(apiSettings);
@@ -325,7 +324,7 @@ class AIService {
       genre: story?.genre,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.classifier.profileId);
     const classifier = new ClassifierService(provider);
 
     const context: ClassificationContext = {
@@ -367,7 +366,7 @@ class AIService {
       lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.suggestions.profileId);
     const suggestions = new SuggestionsService(provider);
     return await suggestions.generateSuggestions(entries, activeThreads, genre, lorebookEntries);
   }
@@ -390,7 +389,7 @@ class AIService {
       lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.suggestions.profileId);
     const actionChoices = new ActionChoicesService(provider);
     return await actionChoices.generateChoices(entries, worldState, narrativeResponse, pov, lorebookEntries);
   }
@@ -402,7 +401,7 @@ class AIService {
   async analyzeStyle(entries: StoryEntry[]): Promise<StyleReviewResult> {
     log('analyzeStyle called', { entriesCount: entries.length });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.styleReviewer.profileId);
     const styleReviewer = new StyleReviewerService(provider);
     return await styleReviewer.analyzeStyle(entries);
   }
@@ -423,7 +422,7 @@ class AIService {
       tokensOutsideBuffer,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
     return await memory.analyzeForChapter(entries, lastChapterEndIndex, config, tokensOutsideBuffer);
   }
@@ -436,7 +435,7 @@ class AIService {
   async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[]): Promise<ChapterSummary> {
     log('summarizeChapter called', { entriesCount: entries.length, previousChaptersCount: previousChapters?.length ?? 0 });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
     return await memory.summarizeChapter(entries, previousChapters);
   }
@@ -454,7 +453,7 @@ class AIService {
   ): Promise<ChapterSummary> {
     log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
     return await memory.resummarizeChapter(chapter, entries, allChapters);
   }
@@ -475,7 +474,7 @@ class AIService {
       chaptersCount: chapters.length,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
     return await memory.decideRetrieval(userInput, recentEntries, chapters, config);
   }
@@ -611,7 +610,7 @@ class AIService {
       chaptersCount: chapters.length,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.loreManagement.profileId);
     const loreManager = new LoreManagementService(provider);
 
     return await loreManager.runSession({
@@ -643,7 +642,7 @@ class AIService {
       entriesCount: entries.length,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.agenticRetrieval.profileId);
     const retrieval = new AgenticRetrievalService(provider);
 
     return await retrieval.runRetrieval(
@@ -699,7 +698,7 @@ class AIService {
       allEntriesCount: allEntries.length,
     });
 
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
     const timelineFill = new TimelineFillService(provider);
 
     return await timelineFill.fillTimeline(
@@ -719,7 +718,7 @@ class AIService {
     chapters: Chapter[],
     allEntries: StoryEntry[]
   ): Promise<string> {
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
     const timelineFill = new TimelineFillService(provider);
     return await timelineFill.answerQuestionForChapters(
       question,
@@ -739,7 +738,7 @@ class AIService {
     chapters: Chapter[],
     allEntries: StoryEntry[]
   ): Promise<string> {
-    const provider = this.getProvider();
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
     const timelineFill = new TimelineFillService(provider);
     return await timelineFill.answerQuestionForChapterRange(
       question,
