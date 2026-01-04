@@ -178,7 +178,7 @@ function inferEntryType(name: string, content: string): EntryType {
 }
 
 /**
- * LLM-based entry type classification using grok-4.1-fast with reasoning.
+ * LLM-based entry type classification using configurable settings.
  * Classifies entries in batches with concurrent requests for faster processing.
  */
 export async function classifyEntriesWithLLM(
@@ -187,8 +187,11 @@ export async function classifyEntriesWithLLM(
 ): Promise<ImportedEntry[]> {
   if (entries.length === 0) return entries;
 
-  // Use the main narrative profile for lorebook classification
-  const profileId = settings.apiSettings.mainNarrativeProfileId;
+  // Get lorebook classifier settings
+  const lorebookSettings = settings.systemServicesSettings.lorebookClassifier;
+
+  // Use specified profile, or fall back to main narrative profile
+  const profileId = lorebookSettings.profileId ?? settings.apiSettings.mainNarrativeProfileId;
   const apiSettings = settings.getApiSettingsForProfile(profileId);
 
   if (!apiSettings.openaiApiKey) {
@@ -197,11 +200,16 @@ export async function classifyEntriesWithLLM(
   }
 
   const provider = new OpenAIProvider(apiSettings);
-  const BATCH_SIZE = 50;
-  const MAX_CONCURRENT = 5;
+  const BATCH_SIZE = lorebookSettings.batchSize;
+  const MAX_CONCURRENT = lorebookSettings.maxConcurrent;
   const classifiedEntries = [...entries];
 
-  log('Starting LLM classification', { totalEntries: entries.length, maxConcurrent: MAX_CONCURRENT });
+  log('Starting LLM classification', {
+    totalEntries: entries.length,
+    batchSize: BATCH_SIZE,
+    maxConcurrent: MAX_CONCURRENT,
+    model: lorebookSettings.model,
+  });
 
   // Create batches
   const batches: { startIndex: number; batch: ImportedEntry[]; batchIndex: number }[] = [];
@@ -242,16 +250,16 @@ Respond with ONLY valid JSON in this exact format:
 [{"index": 0, "type": "character"}, {"index": 1, "type": "location"}, ...]`;
 
       const response = await provider.generateResponse({
-        model: 'x-ai/grok-4.1-fast',
+        model: lorebookSettings.model,
         messages: [
           {
             role: 'system',
-            content: 'You are a precise classifier for fantasy/RPG lorebook entries. Analyze the name, content, and keywords to determine the most appropriate category. Be decisive - pick the single best category for each entry. Respond only with the JSON array.',
+            content: lorebookSettings.systemPrompt,
           },
           { role: 'user', content: prompt },
         ],
-        temperature: 0.1,
-        maxTokens: 8192,
+        temperature: lorebookSettings.temperature,
+        maxTokens: lorebookSettings.maxTokens,
         extraBody: {
           reasoning: { effort: 'high' },
         },

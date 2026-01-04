@@ -28,6 +28,8 @@
   let editingStoryPrompt = $state<'adventure' | 'creativeWriting' | null>(null);
   let editingProcess = $state<keyof AdvancedWizardSettings | null>(null);
   let editingClassifierPrompt = $state(false);
+  let editingLorebookClassifier = $state(false);
+  let editingLorebookClassifierPrompt = $state(false);
   let editingMemoryPrompt = $state<'chapterAnalysis' | 'chapterSummarization' | 'retrievalDecision' | null>(null);
   let editingSuggestionsPrompt = $state(false);
   let editingStyleReviewerPrompt = $state(false);
@@ -945,11 +947,142 @@
                     {/if}
                   </div>
                 {/each}
+
+                <!-- Lorebook Import Classification Subsection -->
+                <div class="card bg-surface-900 p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                      <FolderOpen class="h-4 w-4 text-green-400" />
+                      <span class="text-sm font-medium text-surface-200">Lorebook Import Classification</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button
+                        class="text-xs text-surface-400 hover:text-surface-200"
+                        onclick={() => settings.resetLorebookClassifierSettings()}
+                        title="Reset to default"
+                      >
+                        <RotateCcw class="h-3 w-3" />
+                      </button>
+                      <button
+                        class="text-xs text-accent-400 hover:text-accent-300"
+                        onclick={() => editingLorebookClassifier = !editingLorebookClassifier}
+                      >
+                        {editingLorebookClassifier ? 'Close' : 'Edit'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {#if editingLorebookClassifier}
+                    <div class="space-y-3 mt-3 pt-3 border-t border-surface-700">
+                      <!-- Profile and Model Selector -->
+                      <ModelSelector
+                        profileId={settings.systemServicesSettings.lorebookClassifier?.profileId ?? settings.apiSettings.mainNarrativeProfileId}
+                        model={settings.systemServicesSettings.lorebookClassifier?.model ?? 'x-ai/grok-4.1-fast'}
+                        onProfileChange={(id) => {
+                          settings.systemServicesSettings.lorebookClassifier.profileId = id;
+                          settings.saveSystemServicesSettings();
+                        }}
+                        onModelChange={(m) => {
+                          settings.systemServicesSettings.lorebookClassifier.model = m;
+                          settings.saveSystemServicesSettings();
+                        }}
+                        onManageProfiles={() => { showProfileModal = true; editingProfile = null; }}
+                      />
+
+                      <!-- Temperature -->
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-surface-400">
+                          Temperature: {(settings.systemServicesSettings.lorebookClassifier?.temperature ?? 0.1).toFixed(2)}
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={settings.systemServicesSettings.lorebookClassifier?.temperature ?? 0.1}
+                          oninput={(e) => {
+                            settings.systemServicesSettings.lorebookClassifier.temperature = parseFloat(e.currentTarget.value);
+                            settings.saveSystemServicesSettings();
+                          }}
+                          class="w-full h-2"
+                        />
+                      </div>
+
+                      <!-- Batch Size -->
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-surface-400">
+                          Batch Size: {settings.systemServicesSettings.lorebookClassifier?.batchSize ?? 50}
+                        </label>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          step="10"
+                          value={settings.systemServicesSettings.lorebookClassifier?.batchSize ?? 50}
+                          oninput={(e) => {
+                            settings.systemServicesSettings.lorebookClassifier.batchSize = parseInt(e.currentTarget.value);
+                            settings.saveSystemServicesSettings();
+                          }}
+                          class="w-full h-2"
+                        />
+                        <div class="flex justify-between text-xs text-surface-500">
+                          <span>Smaller batches</span>
+                          <span>Larger batches</span>
+                        </div>
+                      </div>
+
+                      <!-- Max Concurrent -->
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-surface-400">
+                          Max Concurrent: {settings.systemServicesSettings.lorebookClassifier?.maxConcurrent ?? 5}
+                        </label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          step="1"
+                          value={settings.systemServicesSettings.lorebookClassifier?.maxConcurrent ?? 5}
+                          oninput={(e) => {
+                            settings.systemServicesSettings.lorebookClassifier.maxConcurrent = parseInt(e.currentTarget.value);
+                            settings.saveSystemServicesSettings();
+                          }}
+                          class="w-full h-2"
+                        />
+                        <div class="flex justify-between text-xs text-surface-500">
+                          <span>Sequential</span>
+                          <span>Parallel</span>
+                        </div>
+                      </div>
+
+                      <!-- System Prompt -->
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-surface-400">System Prompt</label>
+                        <textarea
+                          value={settings.systemServicesSettings.lorebookClassifier?.systemPrompt ?? ''}
+                          oninput={(e) => {
+                            settings.systemServicesSettings.lorebookClassifier.systemPrompt = e.currentTarget.value;
+                          }}
+                          onblur={() => settings.saveSystemServicesSettings()}
+                          class="input text-xs min-h-[100px] resize-y font-mono w-full"
+                          rows="5"
+                        ></textarea>
+                      </div>
+                    </div>
+                  {:else}
+                    <div class="text-xs text-surface-400">
+                      <span class="text-surface-500">Model:</span> {settings.systemServicesSettings.lorebookClassifier?.model ?? 'x-ai/grok-4.1-fast'}
+                      <span class="mx-2">•</span>
+                      <span class="text-surface-500">Temp:</span> {(settings.systemServicesSettings.lorebookClassifier?.temperature ?? 0.1).toFixed(1)}
+                      <span class="mx-2">•</span>
+                      <span class="text-surface-500">Batch:</span> {settings.systemServicesSettings.lorebookClassifier?.batchSize ?? 50}
+                    </div>
+                  {/if}
+                </div>
               </div>
             {/if}
           </div>
 
-          <!-- Classifier Section -->
+          <!-- World State Classifier Section -->
           <div class="border-t border-surface-700 pt-3">
             <div class="flex items-center justify-between">
               <button
@@ -1024,7 +1157,7 @@
                     <input
                       type="range"
                       min="500"
-                      max="4000"
+                      max="8192"
                       step="100"
                       bind:value={settings.systemServicesSettings.classifier.maxTokens}
                       onchange={() => settings.saveSystemServicesSettings()}

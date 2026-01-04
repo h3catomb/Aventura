@@ -337,7 +337,7 @@ Query based ONLY on the information visible in the chapter summaries or things t
   timelineFillAnswer: `You answer specific questions about story chapters. Be concise and factual. Only include information that directly answers the question. If the chapter doesn't contain relevant information, say "Not mentioned in this chapter."`,
 };
 
-// Classifier service settings
+// Classifier service settings (World State Classifier - extracts entities from narrative)
 export interface ClassifierSettings {
   profileId: string | null;  // API profile to use (null = use default profile)
   model: string;
@@ -353,6 +353,31 @@ export function getDefaultClassifierSettings(): ClassifierSettings {
     temperature: 0.3,
     maxTokens: 8192,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.classifier,
+  };
+}
+
+// Lorebook Import Classifier settings (classifies imported lorebook entries by type)
+export interface LorebookClassifierSettings {
+  profileId: string | null;  // API profile to use (null = use main narrative profile)
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  systemPrompt: string;
+  batchSize: number;         // Entries per batch for LLM classification
+  maxConcurrent: number;     // Max concurrent batch requests
+}
+
+export const DEFAULT_LOREBOOK_CLASSIFIER_PROMPT = `You are a precise classifier for fantasy/RPG lorebook entries. Analyze the name, content, and keywords to determine the most appropriate category. Be decisive - pick the single best category for each entry. Respond only with the JSON array.`;
+
+export function getDefaultLorebookClassifierSettings(): LorebookClassifierSettings {
+  return {
+    profileId: null,  // null = use main narrative profile
+    model: 'x-ai/grok-4.1-fast',
+    temperature: 0.1,
+    maxTokens: 8192,
+    systemPrompt: DEFAULT_LOREBOOK_CLASSIFIER_PROMPT,
+    batchSize: 50,
+    maxConcurrent: 5,
   };
 }
 
@@ -532,6 +557,7 @@ export function getDefaultUpdateSettings(): UpdateSettings {
 // Combined system services settings
 export interface SystemServicesSettings {
   classifier: ClassifierSettings;
+  lorebookClassifier: LorebookClassifierSettings;
   memory: MemorySettings;
   suggestions: SuggestionsSettings;
   styleReviewer: StyleReviewerSettings;
@@ -543,6 +569,7 @@ export interface SystemServicesSettings {
 export function getDefaultSystemServicesSettings(): SystemServicesSettings {
   return {
     classifier: getDefaultClassifierSettings(),
+    lorebookClassifier: getDefaultLorebookClassifierSettings(),
     memory: getDefaultMemorySettings(),
     suggestions: getDefaultSuggestionsSettings(),
     styleReviewer: getDefaultStyleReviewerSettings(),
@@ -698,6 +725,7 @@ class SettingsStore {
           const defaults = getDefaultSystemServicesSettings();
           this.systemServicesSettings = {
             classifier: { ...defaults.classifier, ...loaded.classifier },
+            lorebookClassifier: { ...defaults.lorebookClassifier, ...loaded.lorebookClassifier },
             memory: { ...defaults.memory, ...loaded.memory },
             suggestions: { ...defaults.suggestions, ...loaded.suggestions },
             styleReviewer: { ...defaults.styleReviewer, ...loaded.styleReviewer },
@@ -1188,6 +1216,11 @@ class SettingsStore {
 
   async resetClassifierSettings() {
     this.systemServicesSettings.classifier = getDefaultClassifierSettings();
+    await this.saveSystemServicesSettings();
+  }
+
+  async resetLorebookClassifierSettings() {
+    this.systemServicesSettings.lorebookClassifier = getDefaultLorebookClassifierSettings();
     await this.saveSystemServicesSettings();
   }
 
