@@ -11,6 +11,7 @@
   import SettingsModal from '$lib/components/settings/SettingsModal.svelte';
   import LorebookDebugPanel from '$lib/components/debug/LorebookDebugPanel.svelte';
   import DebugLogModal from '$lib/components/debug/DebugLogModal.svelte';
+  import SyncModal from '$lib/components/sync/SyncModal.svelte';
   import { swipe } from '$lib/utils/swipe';
   import { Bug } from 'lucide-svelte';
   import type { Snippet } from 'svelte';
@@ -88,6 +89,9 @@
 
   <!-- Debug Log Modal -->
   <DebugLogModal />
+
+  <!-- Sync Modal -->
+  <SyncModal />
 
   <!-- Floating Debug Button (when debug mode enabled) -->
   {#if settings.uiSettings.debugMode}

@@ -3,6 +3,7 @@ import type { ActionChoice } from '$lib/services/ai/actionChoices';
 import type { StorySuggestion } from '$lib/services/ai/suggestions';
 import type { StyleReviewResult } from '$lib/services/ai/styleReviewer';
 import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/entryRetrieval';
+import type { SyncMode } from '$lib/types/sync';
 import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
 import { database } from '$lib/services/database';
 
@@ -126,6 +127,10 @@ class UIStore {
   resummarizeModalOpen = $state(false);
   resummarizeChapterId = $state<string | null>(null);
   memoryLoading = $state(false);
+
+  // Sync modal state
+  syncModalOpen = $state(false);
+  syncMode = $state<SyncMode>('select');
 
   // Lore management mode state
   // When active, the AI is reviewing/updating the lorebook - user editing is locked
@@ -683,6 +688,21 @@ class UIStore {
     this.resummarizeModalOpen = false;
     this.resummarizeChapterId = null;
     this.memoryLoading = false;
+  }
+
+  // Sync modal methods
+  openSyncModal() {
+    this.syncModalOpen = true;
+    this.syncMode = 'select';
+  }
+
+  closeSyncModal() {
+    this.syncModalOpen = false;
+    this.syncMode = 'select';
+  }
+
+  setSyncMode(mode: SyncMode) {
+    this.syncMode = mode;
   }
 
   // Activation tracking methods for lorebook stickiness
