@@ -444,6 +444,10 @@
     color: var(--text-primary);
   }
 
+  .nav-tab-active {
+    background-color: var(--color-surface-700);
+  }
+
   .input {
     @apply w-full px-3 py-2 rounded-lg transition-all duration-200;
     background-color: var(--bg-secondary);
@@ -971,6 +975,45 @@ html, body {
 
   .btn-ghost:active {
     background-color: var(--bg-secondary);
+  }
+
+  .nav-tab {
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-tab::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: calc(0.5rem - 2px);
+    background-color: var(--bg-secondary);
+    opacity: 0;
+    transition: opacity 100ms ease;
+    pointer-events: none;
+  }
+
+  .nav-tab > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .nav-tab.nav-tab-active {
+    background-color: transparent;
+  }
+
+  .nav-tab.nav-tab-active::before {
+    background-color: var(--color-surface-700);
+    opacity: 1;
+  }
+
+  .nav-tab:active {
+    background-color: transparent;
+  }
+
+  .nav-tab:active::before {
+    opacity: 1;
   }
 }
 
