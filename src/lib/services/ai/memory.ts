@@ -1,7 +1,32 @@
 import type { OpenAIProvider } from './openrouter';
-import type { Chapter, StoryEntry, MemoryConfig } from '$lib/types';
+import type { Chapter, StoryEntry, MemoryConfig, TimeTracker } from '$lib/types';
 import { settings, type MemorySettings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
+
+// Format time tracker for display in context
+function formatTime(time: TimeTracker | null): string {
+  if (!time) return '';
+  const parts: string[] = [];
+  if (time.years > 0) parts.push(`Year ${time.years}`);
+  if (time.days > 0) parts.push(`Day ${time.days}`);
+  const hour = time.hours.toString().padStart(2, '0');
+  const minute = time.minutes.toString().padStart(2, '0');
+  parts.push(`${hour}:${minute}`);
+  return parts.join(', ');
+}
+
+// Format time range for chapter context
+function formatTimeRange(startTime: TimeTracker | null, endTime: TimeTracker | null): string {
+  const start = formatTime(startTime);
+  const end = formatTime(endTime);
+  if (!start && !end) return '';
+  if (start && end && start !== end) {
+    return ` [${start} → ${end}]`;
+  }
+  if (start) return ` [${start}]`;
+  if (end) return ` [${end}]`;
+  return '';
+}
 
 const DEBUG = true;
 
@@ -372,6 +397,11 @@ Guidelines:
       contextBlock += `\n\n• Chapter ${chapter.number}`;
       if (chapter.title) {
         contextBlock += ` - "${chapter.title}"`;
+      }
+      // Add time range if available
+      const timeRange = formatTimeRange(chapter.startTime, chapter.endTime);
+      if (timeRange) {
+        contextBlock += timeRange;
       }
       contextBlock += `:\n${chapter.summary}`;
     }

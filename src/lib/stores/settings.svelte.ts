@@ -380,7 +380,7 @@ export function getDefaultClassifierSettings(): ClassifierSettings {
     reasoningEffort: 'medium',
     providerOnly: [],
     manualBody: '',
-    chatHistoryTruncation: 100,  // Default: truncate to 100 words per entry
+    chatHistoryTruncation: 300,  // Default: truncate to 300 words per entry
   };
 }
 
@@ -397,7 +397,7 @@ export function getDefaultClassifierSettingsForProvider(provider: ProviderPreset
     reasoningEffort: 'medium',
     providerOnly: [],
     manualBody: '',
-    chatHistoryTruncation: 100,  // Default: truncate to 100 words per entry
+    chatHistoryTruncation: 300,  // Default: truncate to 300 words per entry
   };
 }
 
