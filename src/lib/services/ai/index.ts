@@ -25,19 +25,14 @@ function log(...args: any[]) {
 
 /**
  * Format a TimeTracker into a human-readable string for the narrative prompt.
+ * Always returns a value, defaulting to Year 1, Day 1, 0 hours 0 minutes if null.
  */
-function formatStoryTime(time: TimeTracker | null | undefined): string | null {
-  if (!time) return null;
-  const parts: string[] = [];
-  if (time.years > 0) parts.push(`Year ${time.years}`);
-  if (time.days > 0) parts.push(`Day ${time.days}`);
-  // Always include time of day for narrative context
-  const hour = time.hours;
-  const minute = time.minutes.toString().padStart(2, '0');
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  parts.push(`${hour12}:${minute} ${period}`);
-  return parts.join(', ');
+function formatStoryTime(time: TimeTracker | null | undefined): string {
+  const t = time ?? { years: 0, days: 0, hours: 0, minutes: 0 };
+  // One-indexed years and days
+  const year = t.years + 1;
+  const day = t.days + 1;
+  return `Year ${year}, Day ${day}, ${t.hours} hours ${t.minutes} minutes`;
 }
 
 interface WorldState {
@@ -166,7 +161,8 @@ class AIService {
     useTieredContext = true,
     styleReview?: StyleReviewResult | null,
     retrievedChapterContext?: string | null,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    timelineFillResult?: TimelineFillResult | null
   ): AsyncIterable<StreamChunk> {
     log('streamResponse called', {
       entriesCount: entries.length,
@@ -176,6 +172,7 @@ class AIService {
       useTieredContext,
       hasChapters: (worldState.chapters?.length ?? 0) > 0,
       hasRetrievedContext: !!retrievedChapterContext,
+      hasTimelineFill: !!timelineFillResult,
       worldState: {
         characters: worldState.characters.length,
         locations: worldState.locations.length,
@@ -242,10 +239,15 @@ class AIService {
     // Inject chapter summaries if chapters exist
     // Per design doc: summarized entries are excluded from context,
     // but their summaries are included for continuity
+    // Timeline fill results (retrieved Q&A) are also included here
     if (worldState.chapters && worldState.chapters.length > 0) {
-      const chapterSummariesBlock = this.buildChapterSummariesBlock(worldState.chapters);
+      const chapterSummariesBlock = this.buildChapterSummariesBlock(worldState.chapters, timelineFillResult);
       systemPrompt += chapterSummariesBlock;
-      log('Chapter summaries injected', { chapterCount: worldState.chapters.length });
+      log('Chapter summaries injected', {
+        chapterCount: worldState.chapters.length,
+        hasTimelineFill: !!timelineFillResult,
+        retrievedQA: timelineFillResult?.responses?.length ?? 0,
+      });
     }
 
     // Inject style guidance if available
@@ -830,7 +832,7 @@ class AIService {
    * Per design doc: summarized entries are excluded from direct context,
    * but their summaries provide narrative continuity.
    */
-  private buildChapterSummariesBlock(chapters: Chapter[]): string {
+  private buildChapterSummariesBlock(chapters: Chapter[], timelineFillResult?: TimelineFillResult | null): string {
     if (chapters.length === 0) return '';
 
     let block = '\n\n<story_history>\n';
@@ -843,6 +845,16 @@ class AIService {
         block += `: ${chapter.title}`;
       }
       block += '\n';
+
+      // Add time range if available
+      const startTime = formatStoryTime(chapter.startTime);
+      const endTime = formatStoryTime(chapter.endTime);
+      if (startTime && endTime) {
+        block += `*Time: ${startTime} → ${endTime}*\n`;
+      } else if (startTime) {
+        block += `*Time: ${startTime}*\n`;
+      }
+
       block += chapter.summary;
       block += '\n';
 
@@ -861,6 +873,22 @@ class AIService {
         block += `*${metadata.join(' | ')}*\n`;
       }
       block += '\n';
+    }
+
+    // Add retrieved Q&A from timeline fill if available
+    if (timelineFillResult && timelineFillResult.responses.length > 0) {
+      block += '## Retrieved Context\n';
+      block += 'The following information was retrieved from past chapters and is relevant to the current scene:\n\n';
+
+      for (const response of timelineFillResult.responses) {
+        const chapterLabel = response.chapterNumbers.length === 1
+          ? `Chapter ${response.chapterNumbers[0]}`
+          : `Chapters ${response.chapterNumbers.join(', ')}`;
+
+        block += `**${chapterLabel}**\n`;
+        block += `Q: ${response.query}\n`;
+        block += `A: ${response.answer}\n\n`;
+      }
     }
 
     block += '</story_history>';

@@ -77,51 +77,77 @@ export class OpenAIProvider implements AIProvider {
       });
     }
 
-    const response = await fetch(baseUrl + 'chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.settings.openaiApiKey}`,
-        'HTTP-Referer': 'https://aventura.camp',
-        'X-Title': 'Aventura',
-      },
-      body: JSON.stringify(requestBody),
-      signal: request.signal,
-    });
+    // Create timeout controller (3 minutes)
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      log('Request timeout triggered (3 minutes)');
+      timeoutController.abort();
+    }, 180000);
 
-    log('Response received', { status: response.status, ok: response.ok });
+    // If caller provided a signal, link it to our timeout controller
+    if (request.signal) {
+      request.signal.addEventListener('abort', () => timeoutController.abort());
+    }
 
-    if (!response.ok) {
-      const error = await response.text();
-      log('API error', { status: response.status, error });
-      // Debug logging - log error response
-      if (settings.uiSettings.debugMode && debugRequestId) {
-        ui.addDebugResponse(debugRequestId, 'generateResponse', { status: response.status, error }, startTime, error);
+    try {
+      const response = await fetch(baseUrl + 'chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.settings.openaiApiKey}`,
+          'HTTP-Referer': 'https://aventura.camp',
+          'X-Title': 'Aventura',
+        },
+        body: JSON.stringify(requestBody),
+        signal: timeoutController.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      log('Response received', { status: response.status, ok: response.ok });
+
+      if (!response.ok) {
+        const error = await response.text();
+        log('API error', { status: response.status, error });
+        // Debug logging - log error response
+        if (settings.uiSettings.debugMode && debugRequestId) {
+          ui.addDebugResponse(debugRequestId, 'generateResponse', { status: response.status, error }, startTime, error);
+        }
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
       }
-      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+
+      const data = await response.json();
+      log('Response parsed', {
+        model: data.model,
+        contentLength: data.choices[0]?.message?.content?.length ?? 0,
+        usage: data.usage,
+      });
+
+      // Debug logging - log success response
+      if (settings.uiSettings.debugMode && debugRequestId) {
+        ui.addDebugResponse(debugRequestId, 'generateResponse', data, startTime);
+      }
+
+      return {
+        content: data.choices[0]?.message?.content ?? '',
+        model: data.model,
+        usage: data.usage ? {
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
+        } : undefined,
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Check if it was a timeout vs user abort
+        if (request.signal?.aborted) {
+          throw error; // User aborted, re-throw as-is
+        }
+        throw new Error('Request timed out after 3 minutes');
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    log('Response parsed', {
-      model: data.model,
-      contentLength: data.choices[0]?.message?.content?.length ?? 0,
-      usage: data.usage,
-    });
-
-    // Debug logging - log success response
-    if (settings.uiSettings.debugMode && debugRequestId) {
-      ui.addDebugResponse(debugRequestId, 'generateResponse', data, startTime);
-    }
-
-    return {
-      content: data.choices[0]?.message?.content ?? '',
-      model: data.model,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
-      } : undefined,
-    };
   }
 
   /**
@@ -165,89 +191,115 @@ export class OpenAIProvider implements AIProvider {
       });
     }
 
-    const response = await fetch(baseUrl + 'chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.settings.openaiApiKey}`,
-        'HTTP-Referer': 'https://aventura.camp',
-        'X-Title': 'Aventura',
-      },
-      body: JSON.stringify(requestBody),
-      signal: request.signal,
-    });
+    // Create timeout controller (3 minutes)
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      log('Tool request timeout triggered (3 minutes)');
+      timeoutController.abort();
+    }, 180000);
 
-    log('Tool response received', { status: response.status, ok: response.ok });
+    // If caller provided a signal, link it to our timeout controller
+    if (request.signal) {
+      request.signal.addEventListener('abort', () => timeoutController.abort());
+    }
 
-    if (!response.ok) {
-      const error = await response.text();
-      log('Tool API error', { status: response.status, error });
-      // Debug logging - log error response
-      if (settings.uiSettings.debugMode && debugRequestId) {
-        ui.addDebugResponse(debugRequestId, 'generateWithTools', { status: response.status, error }, startTime, error);
+    try {
+      const response = await fetch(baseUrl + 'chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.settings.openaiApiKey}`,
+          'HTTP-Referer': 'https://aventura.camp',
+          'X-Title': 'Aventura',
+        },
+        body: JSON.stringify(requestBody),
+        signal: timeoutController.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      log('Tool response received', { status: response.status, ok: response.ok });
+
+      if (!response.ok) {
+        const error = await response.text();
+        log('Tool API error', { status: response.status, error });
+        // Debug logging - log error response
+        if (settings.uiSettings.debugMode && debugRequestId) {
+          ui.addDebugResponse(debugRequestId, 'generateWithTools', { status: response.status, error }, startTime, error);
+        }
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
       }
-      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+
+      const data = await response.json();
+      const choice = data.choices[0];
+      const message = choice?.message;
+
+      log('Tool response parsed', {
+        model: data.model,
+        finishReason: choice?.finish_reason,
+        hasToolCalls: !!message?.tool_calls,
+        toolCallCount: message?.tool_calls?.length ?? 0,
+        contentLength: message?.content?.length ?? 0,
+        hasReasoning: !!message?.reasoning,
+        reasoningLength: message?.reasoning?.length ?? 0,
+        hasReasoningDetails: !!message?.reasoning_details,
+        reasoningDetailsCount: message?.reasoning_details?.length ?? 0,
+      });
+
+      // Extract legacy reasoning string if present (for backwards compatibility)
+      let reasoning: string | undefined;
+      if (message?.reasoning) {
+        reasoning = message.reasoning;
+      } else if (data.reasoning) {
+        // Fallback to top-level reasoning if present
+        reasoning = data.reasoning;
+      }
+
+      // Extract reasoning_details array if present (for preserving reasoning across tool calls)
+      // Per OpenRouter docs: This is required for models like MiniMax M2.1, Claude 3.7+, OpenAI o-series
+      // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+      const reasoning_details = message?.reasoning_details ?? undefined;
+
+      // Parse tool calls if present
+      const toolCalls: ToolCall[] | undefined = message?.tool_calls?.map((tc: any) => ({
+        id: tc.id,
+        type: 'function' as const,
+        function: {
+          name: tc.function.name,
+          arguments: tc.function.arguments,
+        },
+      }));
+
+      // Debug logging - log success response
+      if (settings.uiSettings.debugMode && debugRequestId) {
+        ui.addDebugResponse(debugRequestId, 'generateWithTools', data, startTime);
+      }
+
+      return {
+        content: message?.content ?? null,
+        model: data.model,
+        tool_calls: toolCalls,
+        finish_reason: choice?.finish_reason ?? 'stop',
+        usage: data.usage ? {
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
+          reasoningTokens: data.usage.reasoning_tokens,
+        } : undefined,
+        reasoning,
+        reasoning_details,
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Check if it was a timeout vs user abort
+        if (request.signal?.aborted) {
+          throw error; // User aborted, re-throw as-is
+        }
+        throw new Error('Request timed out after 3 minutes');
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    const choice = data.choices[0];
-    const message = choice?.message;
-
-    log('Tool response parsed', {
-      model: data.model,
-      finishReason: choice?.finish_reason,
-      hasToolCalls: !!message?.tool_calls,
-      toolCallCount: message?.tool_calls?.length ?? 0,
-      contentLength: message?.content?.length ?? 0,
-      hasReasoning: !!message?.reasoning,
-      reasoningLength: message?.reasoning?.length ?? 0,
-      hasReasoningDetails: !!message?.reasoning_details,
-      reasoningDetailsCount: message?.reasoning_details?.length ?? 0,
-    });
-
-    // Extract legacy reasoning string if present (for backwards compatibility)
-    let reasoning: string | undefined;
-    if (message?.reasoning) {
-      reasoning = message.reasoning;
-    } else if (data.reasoning) {
-      // Fallback to top-level reasoning if present
-      reasoning = data.reasoning;
-    }
-
-    // Extract reasoning_details array if present (for preserving reasoning across tool calls)
-    // Per OpenRouter docs: This is required for models like MiniMax M2.1, Claude 3.7+, OpenAI o-series
-    // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-    const reasoning_details = message?.reasoning_details ?? undefined;
-
-    // Parse tool calls if present
-    const toolCalls: ToolCall[] | undefined = message?.tool_calls?.map((tc: any) => ({
-      id: tc.id,
-      type: 'function' as const,
-      function: {
-        name: tc.function.name,
-        arguments: tc.function.arguments,
-      },
-    }));
-
-    // Debug logging - log success response
-    if (settings.uiSettings.debugMode && debugRequestId) {
-      ui.addDebugResponse(debugRequestId, 'generateWithTools', data, startTime);
-    }
-
-    return {
-      content: message?.content ?? null,
-      model: data.model,
-      tool_calls: toolCalls,
-      finish_reason: choice?.finish_reason ?? 'stop',
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
-        reasoningTokens: data.usage.reasoning_tokens,
-      } : undefined,
-      reasoning,
-      reasoning_details,
-    };
   }
 
   async *streamResponse(request: GenerationRequest): AsyncIterable<StreamChunk> {
@@ -292,17 +344,45 @@ export class OpenAIProvider implements AIProvider {
       });
     }
 
-    const response = await fetch(baseUrl + 'chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.settings.openaiApiKey}`,
-        'HTTP-Referer': 'https://aventura.camp',
-        'X-Title': 'Aventura',
-      },
-      body: JSON.stringify(requestBody),
-      signal: request.signal,
-    });
+    // Create timeout controller for initial connection (3 minutes)
+    // Once streaming starts, we clear the timeout as streaming can take longer
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      log('Stream connection timeout triggered (3 minutes)');
+      timeoutController.abort();
+    }, 180000);
+
+    // If caller provided a signal, link it to our timeout controller
+    if (request.signal) {
+      request.signal.addEventListener('abort', () => timeoutController.abort());
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(baseUrl + 'chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.settings.openaiApiKey}`,
+          'HTTP-Referer': 'https://aventura.camp',
+          'X-Title': 'Aventura',
+        },
+        body: JSON.stringify(requestBody),
+        signal: timeoutController.signal,
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        if (request.signal?.aborted) {
+          throw error; // User aborted
+        }
+        throw new Error('Stream connection timed out after 3 minutes');
+      }
+      throw error;
+    }
+
+    // Connection established, clear the timeout - streaming can take longer
+    clearTimeout(timeoutId);
 
     log('Stream response received', { status: response.status, ok: response.ok });
 

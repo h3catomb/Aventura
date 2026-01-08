@@ -89,6 +89,7 @@ class UIStore {
   sidebarOpen = $state(true);
   settingsModalOpen = $state(false);
   isGenerating = $state(false);
+  isRetryingLastMessage = $state(false); // Hide stop button during completed-message retries
 
   // Streaming state
   streamingContent = $state('');
@@ -219,6 +220,10 @@ class UIStore {
 
   setGenerating(value: boolean) {
     this.isGenerating = value;
+  }
+
+  setRetryingLastMessage(value: boolean) {
+    this.isRetryingLastMessage = value;
   }
 
   // Streaming methods

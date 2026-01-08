@@ -27,7 +27,6 @@
   let isRawActionChoice = $state(false); // True when submitting an AI-generated choice (no prefix/suffix)
   let stopRequested = false;
   let activeAbortController: AbortController | null = null;
-  let isRetryingLastMessage = $state(false); // Hide stop button during completed-message retries
 
   // In creative writing mode, show different input style
   const isCreativeMode = $derived(story.storyMode === 'creative-writing');
@@ -456,6 +455,7 @@
       // Per design doc: Memory retrieval and Entry retrieval run in parallel
       let retrievedChapterContext: string | null = null;
       let lorebookContext: string | null = null;
+      let timelineFillResult: import('$lib/services/ai/timelineFill').TimelineFillResult | null = null;
 
       // Build parallel retrieval tasks
       const retrievalTasks: Promise<void>[] = [];
@@ -523,26 +523,12 @@
                 activeAbortController?.signal
               );
 
-              if (timelineResult.responses.length > 0) {
-                // Calculate positions for prompt injection
-                const currentPosition = story.entries.length;
-                const firstVisiblePosition = story.entries.length - story.visibleEntries.length + 1;
-
-                retrievedChapterContext = aiService.formatTimelineFillForPrompt(
-                  story.chapters,
-                  timelineResult,
-                  currentPosition,
-                  firstVisiblePosition,
-                  story.locations // Filter to only visited/current locations
-                );
-                log('Timeline fill complete', {
-                  queriesGenerated: timelineResult.queries.length,
-                  responsesCount: timelineResult.responses.length,
-                  contextLength: retrievedChapterContext?.length ?? 0,
-                });
-              } else {
-                log('Timeline fill returned no responses (no relevant queries)');
-              }
+              // Store raw result - formatting is now done in buildChapterSummariesBlock
+              timelineFillResult = timelineResult;
+              log('Timeline fill complete', {
+                queriesGenerated: timelineResult.queries.length,
+                responsesCount: timelineResult.responses.length,
+              });
             }
           } catch (retrievalError) {
             if (retrievalError instanceof Error && retrievalError.name === 'AbortError') {
@@ -656,6 +642,8 @@
           totalEntries: story.entries.length,
           hasRetrievedContext: !!combinedRetrievedContext,
           hasLorebookContext: !!lorebookContext,
+          hasTimelineFill: !!timelineFillResult,
+          timelineFillResponses: timelineFillResult?.responses?.length ?? 0,
           attempt: retryCount + 1,
         });
 
@@ -666,7 +654,8 @@
           true,
           ui.lastStyleReview,
           combinedRetrievedContext,
-          activeAbortController?.signal
+          activeAbortController?.signal,
+          timelineFillResult
         )) {
           if (stopRequested) {
             log('Stop requested during streaming');
@@ -917,7 +906,7 @@
       log('Stop ignored (not generating)');
       return;
     }
-    if (isRetryingLastMessage) {
+    if (ui.isRetryingLastMessage) {
       log('Stop ignored (retrying completed message)');
       return;
     }
@@ -1139,14 +1128,14 @@
 
       // Regenerate
       if (!settings.needsApiKey) {
-        isRetryingLastMessage = true;
+        ui.setRetryingLastMessage(true);
         try {
           await generateResponse(userActionEntry.id, backup.userActionContent, {
             countStyleReview: false,
             styleReviewSource: 'retry-last-message',
           });
         } finally {
-          isRetryingLastMessage = false;
+          ui.setRetryingLastMessage(false);
         }
       }
     } catch (error) {
@@ -1222,7 +1211,7 @@
         ></textarea>
       </div>
       {#if ui.isGenerating}
-        {#if !isRetryingLastMessage}
+        {#if !ui.isRetryingLastMessage}
           <button
             onclick={handleStopGeneration}
             class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
@@ -1316,7 +1305,7 @@
         ></textarea>
       </div>
       {#if ui.isGenerating}
-        {#if !isRetryingLastMessage}
+        {#if !ui.isRetryingLastMessage}
           <button
             onclick={handleStopGeneration}
             class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"

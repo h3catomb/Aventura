@@ -5,13 +5,11 @@ import { buildExtraBody } from './requestOverrides';
 
 // Format time tracker for timeline display (always shows full format)
 function formatTime(time: TimeTracker | null): string {
-  // Default to Year 1, Day 1, 00:00 if null
+  // Default to Year 1, Day 1, 0 hours 0 minutes if null
   const t = time ?? { years: 0, days: 0, hours: 0, minutes: 0 };
   const year = t.years + 1; // Display as 1-indexed (Year 1 = years: 0)
   const day = t.days + 1;   // Display as 1-indexed (Day 1 = days: 0)
-  const hour = t.hours.toString().padStart(2, '0');
-  const minute = t.minutes.toString().padStart(2, '0');
-  return `Year ${year}, Day ${day}, ${hour}:${minute}`;
+  return `Year ${year}, Day ${day}, ${t.hours} hours ${t.minutes} minutes`;
 }
 
 const DEBUG = true;
