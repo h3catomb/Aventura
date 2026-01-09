@@ -458,9 +458,13 @@ export type ReasoningEffort = 'off' | 'low' | 'medium' | 'high';
 
 export type ThemeId = 'dark' | 'light' | 'light-solarized' | 'retro-console';
 
+export type FontSource = 'default' | 'system' | 'google';
+
 export interface UISettings {
   theme: ThemeId;
   fontSize: 'small' | 'medium' | 'large';
+  fontFamily: string;
+  fontSource: FontSource;
   showWordCount: boolean;
   autoSave: boolean;
   spellcheckEnabled: boolean;

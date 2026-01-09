@@ -18,6 +18,7 @@
   import ProfileModal from './ProfileModal.svelte';
   import ModelSelector from './ModelSelector.svelte';
   import ProviderOnlySelector from './ProviderOnlySelector.svelte';
+  import FontSelector from './FontSelector.svelte';
   import type { APIProfile } from '$lib/types';
   import { swipe } from '$lib/utils/swipe';
   import { updaterService, type UpdateInfo, type UpdateProgress } from '$lib/services/updater';
@@ -877,6 +878,11 @@
               <option value="medium">Medium</option>
               <option value="large">Large</option>
             </select>
+          </div>
+
+          <div class="border-t border-surface-700 pt-4 mt-4">
+            <h3 class="text-sm font-medium text-surface-200 mb-3">Story Font</h3>
+            <FontSelector />
           </div>
 
           <div class="flex items-center justify-between">

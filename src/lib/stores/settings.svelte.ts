@@ -1,4 +1,4 @@
-import type { APISettings, UISettings, ThemeId, UpdateSettings, APIProfile } from '$lib/types';
+import type { APISettings, UISettings, ThemeId, FontSource, UpdateSettings, APIProfile } from '$lib/types';
 import { database } from '$lib/services/database';
 import {
   type AdvancedWizardSettings,
@@ -921,6 +921,8 @@ class SettingsStore {
   uiSettings = $state<UISettings>({
     theme: 'dark',
     fontSize: 'medium',
+    fontFamily: 'default',
+    fontSource: 'default',
     showWordCount: true,
     autoSave: true,
     spellcheckEnabled: true,
@@ -1055,6 +1057,29 @@ class SettingsStore {
       if (fontSize) this.uiSettings.fontSize = fontSize as 'small' | 'medium' | 'large';
       // Apply font size immediately (uses default 'medium' if not stored)
       this.applyFontSize(this.uiSettings.fontSize);
+
+      // Load font family settings
+      const fontFamilySetting = await database.getSetting('font_family');
+      if (fontFamilySetting) {
+        try {
+          const { fontFamily, fontSource } = JSON.parse(fontFamilySetting);
+          this.uiSettings.fontFamily = fontFamily || 'default';
+          this.uiSettings.fontSource = (fontSource as FontSource) || 'default';
+
+          // Load Google Font if needed
+          if (this.uiSettings.fontSource === 'google' && this.uiSettings.fontFamily !== 'default') {
+            await this.loadGoogleFont(this.uiSettings.fontFamily);
+          }
+
+          // Apply font family immediately
+          this.applyFontFamily(this.uiSettings.fontFamily, this.uiSettings.fontSource);
+        } catch {
+          // If parsing fails, use defaults
+          this.uiSettings.fontFamily = 'default';
+          this.uiSettings.fontSource = 'default';
+        }
+      }
+
       if (showWordCount) this.uiSettings.showWordCount = showWordCount === 'true';
       if (autoSave) this.uiSettings.autoSave = autoSave === 'true';
       if (spellcheckEnabled !== null) this.uiSettings.spellcheckEnabled = spellcheckEnabled === 'true';
@@ -1642,6 +1667,72 @@ class SettingsStore {
     this.applyFontSize(size);
   }
 
+  /**
+   * Load a Google Font by injecting a stylesheet link
+   */
+  private loadGoogleFont(fontName: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Remove existing Google Font link if any
+      const existingLink = document.getElementById('google-font-link');
+      if (existingLink) {
+        existingLink.remove();
+      }
+
+      const link = document.createElement('link');
+      link.id = 'google-font-link';
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;500;600;700&display=swap`;
+
+      link.onload = () => resolve();
+      link.onerror = () => reject(new Error(`Failed to load Google Font: ${fontName}`));
+
+      document.head.appendChild(link);
+    });
+  }
+
+  /**
+   * Apply font family to the DOM using CSS custom property
+   */
+  private applyFontFamily(fontFamily: string, source: FontSource) {
+    if (source === 'default' || fontFamily === 'default') {
+      // Remove custom font and let CSS use theme default
+      document.documentElement.style.removeProperty('--font-story-custom');
+      document.documentElement.removeAttribute('data-custom-font');
+
+      // Remove Google Font link if exists
+      const existingLink = document.getElementById('google-font-link');
+      if (existingLink) {
+        existingLink.remove();
+      }
+    } else {
+      // Set custom font
+      const fontStack = source === 'google'
+        ? `'${fontFamily}', Georgia, serif`
+        : `'${fontFamily}', Georgia, serif`;
+      document.documentElement.style.setProperty('--font-story-custom', fontStack);
+      document.documentElement.setAttribute('data-custom-font', 'true');
+    }
+  }
+
+  async setFontFamily(fontFamily: string, source: FontSource) {
+    this.uiSettings.fontFamily = fontFamily;
+    this.uiSettings.fontSource = source;
+
+    // Load Google Font if needed
+    if (source === 'google' && fontFamily !== 'default') {
+      try {
+        await this.loadGoogleFont(fontFamily);
+      } catch (error) {
+        console.error('Failed to load Google Font:', error);
+      }
+    }
+
+    this.applyFontFamily(fontFamily, source);
+
+    // Save to database as JSON object
+    await database.setSetting('font_family', JSON.stringify({ fontFamily, fontSource: source }));
+  }
+
   async setSpellcheckEnabled(enabled: boolean) {
     this.uiSettings.spellcheckEnabled = enabled;
     await database.setSetting('spellcheck_enabled', enabled.toString());
@@ -1824,11 +1915,16 @@ class SettingsStore {
     this.uiSettings = {
       theme: 'dark',
       fontSize: 'medium',
+      fontFamily: 'default',
+      fontSource: 'default',
       showWordCount: true,
       autoSave: true,
       spellcheckEnabled: true,
       debugMode: false,
     };
+
+    // Reset font to default
+    this.applyFontFamily('default', 'default');
 
     this.advancedRequestSettings = getDefaultAdvancedRequestSettings();
 

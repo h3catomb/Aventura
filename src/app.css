@@ -604,7 +604,8 @@
    ============================================= */
 @layer utilities {
   .story-text {
-    font-family: var(--font-story);
+    /* Use custom font if set, otherwise fall back to theme default */
+    font-family: var(--font-story-custom, var(--font-story));
     @apply text-lg leading-relaxed;
     color: var(--text-secondary);
   }
