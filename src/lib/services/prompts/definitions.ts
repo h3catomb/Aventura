@@ -1555,7 +1555,7 @@ Return a JSON array (no markdown, just raw JSON):
 [
   {
     "prompt": "Detailed prompt (500-800 chars MAX) with full character appearance, scene details, and style description",
-    "sourceText": "exact phrase from narrative (3-15 words, verbatim)",
+    "sourceText": "exact phrase from narrative (3-15 words, VERBATIM with all punctuation and *markup*)",
     "sceneType": "action|item|character|environment",
     "priority": 1-10
   }
@@ -1576,7 +1576,12 @@ Return a JSON array (no markdown, just raw JSON):
 2. **NEVER use character names** - the image model doesn't know who "Elena" is. Describe appearance only!
 3. **ALWAYS include the full style** - copy style keywords directly from the Style section
 4. **Stay under 800 characters** - prompts over 800 chars will ERROR and fail. Aim for 500-800.
-5. **sourceText** MUST be a verbatim quote from the narrative (3-15 words)
+5. **sourceText** MUST be COPY-PASTED EXACTLY from the narrative - this is used for text matching and WILL FAIL if not exact.
+   - Copy the EXACT characters from the narrative, including punctuation and any *asterisks* or **markup**
+   - Do NOT paraphrase, rephrase, or reword - copy EXACTLY as written
+   - Do NOT add asterisks or markup that isn't in the original
+   - Do NOT change words (e.g., "her" to "your")
+   - Example: If narrative says "her light-form flickering erratically" then sourceText MUST be "her light-form flickering erratically" - NOT "Your light-form flickering erratically"
 6. Return empty array [] if no suitable visual moments exist
 7. Skip: mundane actions, dialogue-only scenes, abstract concepts
 
