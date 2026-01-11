@@ -47,6 +47,8 @@ export interface CharacterUpdate {
     // Visual descriptors for image generation
     addVisualDescriptors?: string[];
     removeVisualDescriptors?: string[];
+    // Complete replacement of visual descriptors (preferred over add/remove)
+    replaceVisualDescriptors?: string[];
   };
 }
 
@@ -264,11 +266,18 @@ ${formattedEntries}
   private buildClassificationPrompt(context: ClassificationContext): string {
     const promptContext = this.buildPromptContext(context);
 
-    // Include traits for characters so the classifier can decide when to prune
+    // Include traits and visual descriptors for characters so the classifier can prune
     const existingCharacterInfo = context.existingCharacters.map(c => {
       const traits = c.traits ?? [];
-      if (traits.length === 0) return c.name;
-      return `${c.name} [${traits.join(', ')}]`;
+      const visualDesc = c.visualDescriptors ?? [];
+      const parts = [c.name];
+      if (traits.length > 0) {
+        parts.push(`Traits: ${traits.join(', ')}`);
+      }
+      if (visualDesc.length > 0) {
+        parts.push(`Appearance: ${visualDesc.join(', ')}`);
+      }
+      return parts.join(' | ');
     });
     const existingLocationNames = context.existingLocations.map(l => l.name);
     const existingItemNames = context.existingItems.map(i => i.name);
@@ -309,7 +318,7 @@ ${formattedEntries}
       inputLabel,
       userAction: context.userAction,
       narrativeResponse: context.narrativeResponse,
-      existingCharacters: existingCharacterInfo.length > 0 ? existingCharacterInfo.join(', ') : '(none)',
+      existingCharacters: existingCharacterInfo.length > 0 ? '\n' + existingCharacterInfo.map(c => `• ${c}`).join('\n') : '(none)',
       existingLocations: existingLocationNames.length > 0 ? existingLocationNames.join(', ') : '(none)',
       existingItems: existingItemNames.length > 0 ? existingItemNames.join(', ') : '(none)',
       existingBeats: existingBeatsList || '(none)',

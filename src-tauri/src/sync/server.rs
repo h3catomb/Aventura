@@ -1,4 +1,8 @@
-use axum::{extract::State, routing::post, Json, Router};
+use axum::{
+    extract::{DefaultBodyLimit, State},
+    routing::post,
+    Json, Router,
+};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
@@ -42,7 +46,11 @@ pub async fn bind_listener() -> Result<TcpListener, String> {
 
 /// Build the sync router with shared state
 pub fn build_router(state: ServerState) -> Router {
-    Router::new().route("/sync", post(handle_sync)).with_state(state)
+    Router::new()
+        .route("/sync", post(handle_sync))
+        // Increase body limit to 100MB for large stories with embedded images
+        .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
+        .with_state(state)
 }
 
 /// Start the sync HTTP server task

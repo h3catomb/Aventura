@@ -1105,7 +1105,10 @@ class StoryStore {
           changes.traits = traits;
         }
         // Handle visual descriptor updates for image generation
-        if (update.changes.addVisualDescriptors?.length || update.changes.removeVisualDescriptors?.length) {
+        // replaceVisualDescriptors takes priority - it's a complete replacement
+        if (update.changes.replaceVisualDescriptors?.length) {
+          changes.visualDescriptors = update.changes.replaceVisualDescriptors;
+        } else if (update.changes.addVisualDescriptors?.length || update.changes.removeVisualDescriptors?.length) {
           let visualDescriptors = [...(existing.visualDescriptors || [])];
           if (update.changes.removeVisualDescriptors?.length) {
             const toRemove = new Set(update.changes.removeVisualDescriptors.map(d => d.toLowerCase()));

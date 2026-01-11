@@ -737,18 +737,24 @@ Visual descriptors enable consistent character visualization. The goal is to bui
 - A traveler might have weathered features, travel-worn clothes, a pack
 Never leave a character without complete visual descriptors - invent plausible details to fill gaps.
 
-**For EXISTING characters:**
-- Add new descriptors when ANY visual detail is revealed - even minor clothing or accessory mentions
-- Update clothing descriptors when outfits change
-- Remove descriptors that no longer apply (removed cloak, changed clothes, healed scar)
-- If an existing character is MISSING descriptors in any category above, invent reasonable ones now
-- **PRUNE BLOAT**: Actively consolidate and remove redundant descriptors. Keep descriptions concise:
-  - Merge similar descriptors (e.g., "long dark hair" + "black hair to shoulders" → "long black hair to shoulders")
-  - Remove redundant adjectives (e.g., "beautiful elegant fine silk dress" → "fine silk dress")
-  - Remove descriptors that repeat the same information in different words
-  - One concise phrase per feature is better than multiple overlapping phrases
+**For EXISTING characters - USE replaceVisualDescriptors:**
+When updating a character's appearance, use \`replaceVisualDescriptors\` to provide the COMPLETE, FINAL list of descriptors. This REPLACES all existing descriptors entirely. Look at their current "Appearance:" in the entity list and output a cleaned-up, consolidated version with any updates applied.
 
-**Goal:** Descriptors should be CONCISE but COMPLETE - detailed enough to draw the character, but without redundancy or bloat. Aim for ~5-10 descriptors per character, not 20+.
+When to use \`replaceVisualDescriptors\`:
+- ANY visual change (new outfit, new accessory, injury, etc.)
+- Existing descriptors are bloated/redundant (consolidate them!)
+- Character was missing descriptors (fill them in now)
+
+The replacement list should:
+- Include ALL categories: face, hair, eyes, build, clothing, accessories, distinguishing marks
+- Be ~5-10 concise descriptors (one phrase per feature)
+- Merge redundant entries (e.g., multiple "Face:" entries → one)
+- Update changed details (new clothes replace old clothes)
+- Keep unchanged details from the original
+
+Example: If character has bloated appearance with duplicate Face/Hair/Eyes entries, output a single clean \`replaceVisualDescriptors\` array with one entry per category.
+
+**Goal:** Descriptors should be CONCISE but COMPLETE - detailed enough to draw the character, but without redundancy. Always output ~5-10 descriptors, never 20+.
 
 ### Locations - ONLY extract if:
 - The scene takes place there or characters travel there
@@ -834,7 +840,8 @@ Items: {{existingItems}}
 
 ### Field Specifications
 
-characterUpdates: [{"name": "ExistingName", "changes": {"status": "active|inactive|deceased", "relationship": "new relationship", "newTraits": ["trait"], "removeTraits": ["trait"], "addVisualDescriptors": ["add new or fill in missing descriptors - invent if needed"], "removeVisualDescriptors": ["old cloak"]}}]
+characterUpdates: [{"name": "ExistingName", "changes": {"status": "active|inactive|deceased", "relationship": "new relationship", "newTraits": ["trait"], "removeTraits": ["trait"], "replaceVisualDescriptors": ["Face: ...", "Hair: ...", "Eyes: ...", "Build: ...", "Clothing: ...", "Accessories: ...", "Distinguishing marks: ..."]}}]
+NOTE: Use replaceVisualDescriptors (preferred) to output the COMPLETE cleaned-up appearance list. This replaces all existing descriptors.
 
 locationUpdates: [{"name": "ExistingName", "changes": {"visited": true, "current": true, "descriptionAddition": "new detail learned"}}]
 
