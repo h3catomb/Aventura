@@ -596,6 +596,9 @@ export interface TimelineFillSettings {
   maxQueries: number;
   systemPrompt: string;
   queryAnswerPrompt: string;
+  reasoningEffort?: import('$lib/types').ReasoningEffort;
+  providerOnly?: string[];
+  manualBody?: string;
 }
 
 export function getDefaultTimelineFillSettings(): TimelineFillSettings {

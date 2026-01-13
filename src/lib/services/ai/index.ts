@@ -819,6 +819,7 @@ class AIService {
 
   /**
    * Answer a specific chapter question using full chapter content (max 3 chapters).
+   * Uses dedicated chapterQuery settings (shared by both static and agentic modes).
    */
   async answerChapterQuestion(
     chapterNumber: number,
@@ -828,8 +829,15 @@ class AIService {
     signal?: AbortSignal,
     mode: StoryMode = 'adventure'
   ): Promise<string> {
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
-    const timelineFill = new TimelineFillService(provider);
+    const chapterQuerySettings = settings.systemServicesSettings.chapterQuery;
+    const provider = this.getProviderForProfile(chapterQuerySettings.profileId);
+    const timelineFill = new TimelineFillService(provider, {
+      model: chapterQuerySettings.model,
+      temperature: chapterQuerySettings.temperature,
+      reasoningEffort: chapterQuerySettings.reasoningEffort,
+      providerOnly: chapterQuerySettings.providerOnly,
+      manualBody: chapterQuerySettings.manualBody,
+    });
     return await timelineFill.answerQuestionForChapters(
       question,
       [chapterNumber],
@@ -842,6 +850,7 @@ class AIService {
 
   /**
    * Answer a range question across chapters (max 3 chapters).
+   * Uses dedicated chapterQuery settings (shared by both static and agentic modes).
    */
   async answerChapterRangeQuestion(
     startChapter: number,
@@ -852,8 +861,15 @@ class AIService {
     signal?: AbortSignal,
     mode: StoryMode = 'adventure'
   ): Promise<string> {
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
-    const timelineFill = new TimelineFillService(provider);
+    const chapterQuerySettings = settings.systemServicesSettings.chapterQuery;
+    const provider = this.getProviderForProfile(chapterQuerySettings.profileId);
+    const timelineFill = new TimelineFillService(provider, {
+      model: chapterQuerySettings.model,
+      temperature: chapterQuerySettings.temperature,
+      reasoningEffort: chapterQuerySettings.reasoningEffort,
+      providerOnly: chapterQuerySettings.providerOnly,
+      manualBody: chapterQuerySettings.manualBody,
+    });
     return await timelineFill.answerQuestionForChapterRange(
       question,
       startChapter,

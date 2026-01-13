@@ -13,7 +13,7 @@
   } from '$lib/services/ai/scenario';
   import { serializeManualBody } from '$lib/services/ai/requestOverrides';
   import type { ReasoningEffort } from '$lib/types';
-  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb, Sparkles, Clock, Download, Loader2, Save, FolderOpen, ListChecks, Scroll, Image } from 'lucide-svelte';
+  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb, Sparkles, Clock, Download, Loader2, Save, FolderOpen, ListChecks, Scroll, Image, HelpCircle } from 'lucide-svelte';
   import { promptService, type PromptTemplate, type MacroOverride, type Macro, type SimpleMacro, type ComplexMacro } from '$lib/services/prompts';
   import PromptEditor from '../prompts/PromptEditor.svelte';
   import MacroChip from '../prompts/MacroChip.svelte';
@@ -39,6 +39,7 @@
   let showEntryRetrievalSection = $state(false);
   let showLoreManagementSection = $state(false);
   let showTimelineFillSection = $state(false);
+  let showChapterQuerySection = $state(false);
   let showSceneAnalysisSection = $state(false);
   let showCharacterCardImportSection = $state(false);
   let editingLorebookClassifier = $state(false);
@@ -479,6 +480,14 @@
       maxTokens: 8192,
       reasoningEffort: services.timelineFill.reasoningEffort,
       providerOnly: services.timelineFill.providerOnly,
+    }) || servicesChanged;
+
+    servicesChanged = seedManualBody(services.chapterQuery, {
+      model: services.chapterQuery.model,
+      temperature: services.chapterQuery.temperature,
+      maxTokens: 8192,
+      reasoningEffort: services.chapterQuery.reasoningEffort,
+      providerOnly: services.chapterQuery.providerOnly,
     }) || servicesChanged;
 
     servicesChanged = seedManualBody(services.agenticRetrieval, {
@@ -3744,6 +3753,145 @@
 
                     </div>
                   {/if}
+
+                  <!-- Chapter Query Sub-Section -->
+                  <div class="border-t border-surface-700 pt-3 mt-3">
+                    <div class="flex items-center justify-between">
+                      <button
+                        class="flex items-center gap-2 text-left flex-1"
+                        onclick={() => showChapterQuerySection = !showChapterQuerySection}
+                      >
+                        <HelpCircle class="h-4 w-4 text-amber-400" />
+                        <div>
+                          <h4 class="text-sm font-medium text-surface-200">Chapter Query Model</h4>
+                          <p class="text-xs text-surface-500">Model used to answer questions about specific chapters</p>
+                        </div>
+                      </button>
+                      <div class="flex items-center gap-2">
+                        <button
+                          class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                          onclick={() => settings.resetChapterQuerySettings()}
+                        >
+                          <RotateCcw class="h-3 w-3" />
+                          Reset
+                        </button>
+                        <button onclick={() => showChapterQuerySection = !showChapterQuerySection}>
+                          {#if showChapterQuerySection}
+                            <ChevronUp class="h-4 w-4 text-surface-400" />
+                          {:else}
+                            <ChevronDown class="h-4 w-4 text-surface-400" />
+                          {/if}
+                        </button>
+                      </div>
+                    </div>
+
+                    {#if showChapterQuerySection}
+                      <div class="mt-3 space-y-3 pl-4 border-l border-surface-700">
+                        <p class="text-xs text-surface-400">
+                          This model answers specific questions about chapter content. Used by both static and agentic modes when querying chapters.
+                        </p>
+
+                        <!-- Profile and Model Selector -->
+                        <div class="mb-3">
+                          <ModelSelector
+                            profileId={settings.systemServicesSettings.chapterQuery.profileId}
+                            model={settings.systemServicesSettings.chapterQuery.model}
+                            onProfileChange={(id) => {
+                              settings.systemServicesSettings.chapterQuery.profileId = id;
+                              settings.saveSystemServicesSettings();
+                            }}
+                            onModelChange={(m) => {
+                              settings.systemServicesSettings.chapterQuery.model = m;
+                              settings.saveSystemServicesSettings();
+                            }}
+                            onManageProfiles={() => { showProfileModal = true; editingProfile = null; }}
+                          />
+                        </div>
+
+                        <!-- Temperature -->
+                        <div class:opacity-50={settings.advancedRequestSettings.manualMode}>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">
+                            Temperature: {settings.systemServicesSettings.chapterQuery.temperature.toFixed(2)}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            bind:value={settings.systemServicesSettings.chapterQuery.temperature}
+                            onchange={() => settings.saveSystemServicesSettings()}
+                            disabled={settings.advancedRequestSettings.manualMode}
+                            class="w-full h-2"
+                          />
+                        </div>
+
+                        <!-- Reasoning Effort -->
+                        <div class="mb-3" class:opacity-50={settings.advancedRequestSettings.manualMode}>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">
+                            Thinking: {reasoningLabels[settings.systemServicesSettings.chapterQuery.reasoningEffort]}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="3"
+                            step="1"
+                            value={getReasoningIndex(settings.systemServicesSettings.chapterQuery.reasoningEffort)}
+                            onchange={(e) => {
+                              settings.systemServicesSettings.chapterQuery.reasoningEffort = getReasoningValue(parseInt(e.currentTarget.value));
+                              settings.saveSystemServicesSettings();
+                            }}
+                            disabled={settings.advancedRequestSettings.manualMode}
+                            class="w-full h-2"
+                          />
+                          <div class="flex justify-between text-xs text-surface-500">
+                            <span>Off</span>
+                            <span>Low</span>
+                            <span>Medium</span>
+                            <span>High</span>
+                          </div>
+                        </div>
+
+                        <!-- Provider Only -->
+                        <div class="mb-3" class:opacity-50={settings.advancedRequestSettings.manualMode}>
+                          <ProviderOnlySelector
+                            providers={providerOptions}
+                            selected={settings.systemServicesSettings.chapterQuery.providerOnly}
+                            disabled={settings.advancedRequestSettings.manualMode}
+                            onChange={(next) => {
+                              settings.systemServicesSettings.chapterQuery.providerOnly = next;
+                              settings.saveSystemServicesSettings();
+                            }}
+                          />
+                        </div>
+
+                        {#if settings.advancedRequestSettings.manualMode}
+                          <div class="border-t border-surface-700 pt-3">
+                            <div class="mb-1 flex items-center justify-between">
+                              <label class="text-xs font-medium text-surface-400">Manual Request Body (JSON)</label>
+                              <button
+                                class="text-xs text-accent-400 hover:text-accent-300"
+                                onclick={() => openManualBodyEditor('Chapter Query', settings.systemServicesSettings.chapterQuery.manualBody, (next) => {
+                                  settings.systemServicesSettings.chapterQuery.manualBody = next;
+                                  settings.saveSystemServicesSettings();
+                                })}
+                              >
+                                Pop out
+                              </button>
+                            </div>
+                            <textarea
+                              bind:value={settings.systemServicesSettings.chapterQuery.manualBody}
+                              onblur={() => settings.saveSystemServicesSettings()}
+                              class="input text-xs min-h-[140px] resize-y font-mono w-full"
+                              rows="6"
+                            ></textarea>
+                            <p class="text-xs text-surface-500 mt-1">
+                              Overrides request parameters for chapter query calls.
+                            </p>
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
                 </div>
               </div>
             {/if}

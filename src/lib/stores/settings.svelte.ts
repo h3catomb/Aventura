@@ -797,6 +797,41 @@ export function getDefaultTimelineFillSettingsForProvider(provider: ProviderPres
   };
 }
 
+// Chapter Query settings (used by both static and agentic timeline fill modes)
+export interface ChapterQuerySettings {
+  profileId: string | null;  // API profile to use (null = use default profile)
+  model: string;
+  temperature: number;
+  reasoningEffort: ReasoningEffort;
+  providerOnly: string[];
+  manualBody: string;
+}
+
+export function getDefaultChapterQuerySettings(): ChapterQuerySettings {
+  return {
+    profileId: DEFAULT_OPENROUTER_PROFILE_ID,
+    model: 'x-ai/grok-4.1-fast',
+    temperature: 0.2,  // Lower temperature for factual Q&A
+    reasoningEffort: 'high',
+    providerOnly: [],
+    manualBody: '',
+  };
+}
+
+export function getDefaultChapterQuerySettingsForProvider(provider: ProviderPreset): ChapterQuerySettings {
+  const profileId = provider === 'nanogpt' ? DEFAULT_NANOGPT_PROFILE_ID : DEFAULT_OPENROUTER_PROFILE_ID;
+  const model = provider === 'nanogpt' ? 'xiaomi/mimo-v2-flash-thinking' : 'x-ai/grok-4.1-fast';
+  const temperature = provider === 'nanogpt' ? 0.8 : 0.2;
+  return {
+    profileId,
+    model,
+    temperature,
+    reasoningEffort: 'high',
+    providerOnly: [],
+    manualBody: '',
+  };
+}
+
 // Entry Retrieval settings (Tier 3 LLM selection for lorebook entries)
 export interface EntryRetrievalSettings {
   profileId: string | null;  // API profile to use (null = use default profile)
@@ -970,6 +1005,7 @@ export interface SystemServicesSettings {
   loreManagement: LoreManagementSettings;
   agenticRetrieval: AgenticRetrievalSettings;
   timelineFill: TimelineFillSettings;
+  chapterQuery: ChapterQuerySettings;
   entryRetrieval: EntryRetrievalSettings;
   imageGeneration: ImageGenerationServiceSettings;
   characterCardImport: CharacterCardImportSettings;
@@ -986,6 +1022,7 @@ export function getDefaultSystemServicesSettings(): SystemServicesSettings {
     loreManagement: getDefaultLoreManagementSettings(),
     agenticRetrieval: getDefaultAgenticRetrievalSettings(),
     timelineFill: getDefaultTimelineFillSettings(),
+    chapterQuery: getDefaultChapterQuerySettings(),
     entryRetrieval: getDefaultEntryRetrievalSettings(),
     imageGeneration: getDefaultImageGenerationSettings(),
     characterCardImport: getDefaultCharacterCardImportSettings(),
@@ -1003,6 +1040,7 @@ export function getDefaultSystemServicesSettingsForProvider(provider: ProviderPr
     loreManagement: getDefaultLoreManagementSettingsForProvider(provider),
     agenticRetrieval: getDefaultAgenticRetrievalSettingsForProvider(provider),
     timelineFill: getDefaultTimelineFillSettingsForProvider(provider),
+    chapterQuery: getDefaultChapterQuerySettingsForProvider(provider),
     entryRetrieval: getDefaultEntryRetrievalSettingsForProvider(provider),
     imageGeneration: getDefaultImageGenerationSettingsForProvider(provider),
     characterCardImport: getDefaultCharacterCardImportSettingsForProvider(provider),
@@ -1260,6 +1298,7 @@ class SettingsStore {
             loreManagement: { ...defaults.loreManagement, ...loaded.loreManagement },
             agenticRetrieval: { ...defaults.agenticRetrieval, ...loaded.agenticRetrieval },
             timelineFill: { ...defaults.timelineFill, ...loaded.timelineFill },
+            chapterQuery: { ...defaults.chapterQuery, ...loaded.chapterQuery },
             entryRetrieval: { ...defaults.entryRetrieval, ...loaded.entryRetrieval },
             imageGeneration: { ...defaults.imageGeneration, ...loaded.imageGeneration },
             characterCardImport: { ...defaults.characterCardImport, ...loaded.characterCardImport },
@@ -1281,6 +1320,20 @@ class SettingsStore {
           }
           if (this.systemServicesSettings.actionChoices.maxTokens === undefined && suggestionsSettings?.maxTokens !== undefined) {
             this.systemServicesSettings.actionChoices.maxTokens = suggestionsSettings.maxTokens;
+          }
+
+          // Migrate timelineFill settings to chapterQuery for users who haven't configured it
+          // This preserves existing behavior while allowing separate configuration
+          if (!loaded.chapterQuery && loaded.timelineFill) {
+            const tf = loaded.timelineFill;
+            this.systemServicesSettings.chapterQuery = {
+              profileId: tf.profileId ?? defaults.chapterQuery.profileId,
+              model: tf.model ?? defaults.chapterQuery.model,
+              temperature: tf.temperature ?? defaults.chapterQuery.temperature,
+              reasoningEffort: tf.reasoningEffort ?? defaults.chapterQuery.reasoningEffort,
+              providerOnly: tf.providerOnly ?? defaults.chapterQuery.providerOnly,
+              manualBody: tf.manualBody ?? defaults.chapterQuery.manualBody,
+            };
           }
         } catch {
           this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
@@ -2028,6 +2081,11 @@ class SettingsStore {
 
   async resetTimelineFillSettings() {
     this.systemServicesSettings.timelineFill = getDefaultTimelineFillSettingsForProvider(this.getEffectiveProvider());
+    await this.saveSystemServicesSettings();
+  }
+
+  async resetChapterQuerySettings() {
+    this.systemServicesSettings.chapterQuery = getDefaultChapterQuerySettingsForProvider(this.getEffectiveProvider());
     await this.saveSystemServicesSettings();
   }
 
