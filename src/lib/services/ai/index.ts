@@ -104,8 +104,10 @@ class AIService {
     // Build the system prompt with world state context
     const systemPromptOverride = story?.settings?.systemPromptOverride;
     const pov = story?.settings?.pov ?? (mode === 'creative-writing' ? 'third' : 'first');
+    // For creative-writing mode, respect the user's POV selection directly
+    // For adventure mode, remap first->second (player as "you"), keep third as third
     const promptPov = mode === 'creative-writing'
-      ? 'third'
+      ? pov
       : (pov === 'third' ? 'third' : 'second');
     const tense = story?.settings?.tense ?? (mode === 'creative-writing' ? 'past' : 'present');
     const protagonist = worldState.characters.find(c => c.relationship === 'self');
@@ -227,8 +229,10 @@ class AIService {
     // Build the system prompt with world state context
     const systemPromptOverride = story?.settings?.systemPromptOverride;
     const pov = story?.settings?.pov ?? (mode === 'creative-writing' ? 'third' : 'first');
+    // For creative-writing mode, respect the user's POV selection directly
+    // For adventure mode, remap first->second (player as "you"), keep third as third
     const promptPov = mode === 'creative-writing'
-      ? 'third'
+      ? pov
       : (pov === 'third' ? 'third' : 'second');
     const tense = story?.settings?.tense ?? (mode === 'creative-writing' ? 'past' : 'present');
     const protagonist = worldState.characters.find(c => c.relationship === 'self');

@@ -2612,8 +2612,9 @@ const newConfig = { ...this.memoryConfig, ...updates };
 async createStoryFromWizard(data: {
     title: string;
     genre: string;
+    description?: string;
     mode: StoryMode;
-    settings: { pov: 'first' | 'second' | 'third'; tense: 'past' | 'present'; visualProseMode?: boolean; inlineImageMode?: boolean };
+    settings: { pov: 'first' | 'second' | 'third'; tense: 'past' | 'present'; tone?: string; themes?: string[]; visualProseMode?: boolean; inlineImageMode?: boolean };
     protagonist: Partial<Character>;
     startingLocation: Partial<Location>;
     initialItems: Partial<Item>[];
@@ -2635,14 +2636,17 @@ log('createStoryFromWizard called', {
     const storyData = await database.createStory({
       id: crypto.randomUUID(),
       title: data.title,
-      description: null,
+      description: data.description ?? null,
       genre: data.genre,
       templateId: 'wizard-generated',
       mode: data.mode,
 settings: {
         pov: data.settings.pov,
         tense: data.settings.tense,
-        systemPromptOverride: data.systemPrompt,
+        tone: data.settings.tone,
+        themes: data.settings.themes,
+        // Don't store systemPromptOverride - use centralized prompt system instead
+        // The centralized template uses story settings (pov, tense, genre, tone, themes) via macros
         visualProseMode: data.settings.visualProseMode,
         inlineImageMode: data.settings.inlineImageMode,
       },

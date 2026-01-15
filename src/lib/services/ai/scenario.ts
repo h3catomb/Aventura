@@ -1059,6 +1059,7 @@ class ScenarioService {
 prepareStoryData(wizardData: WizardData, opening: GeneratedOpening): {
     title: string;
     genre: string;
+    description?: string;
     mode: StoryMode;
     settings: { pov: POV; tense: Tense; tone?: string; themes?: string[]; visualProseMode?: boolean; inlineImageMode?: boolean };
     protagonist: Partial<Character>;
@@ -1077,6 +1078,7 @@ prepareStoryData(wizardData: WizardData, opening: GeneratedOpening): {
     return {
       title: opening.title || wizardData.title,
       genre: genreLabel,
+      description: expandedSetting?.description,
       mode,
 settings: {
         pov: writingStyle.pov,
