@@ -4,8 +4,8 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { settings } from '$lib/stores/settings.svelte';
   import { User, BookOpen, Info, Pencil, Trash2, Check, X, RefreshCw, RotateCcw, Loader2, GitBranch, Bookmark, Volume2 } from 'lucide-svelte';
-import { parseMarkdown } from '$lib/utils/markdown';
-  import { sanitizeVisualProse } from '$lib/utils/htmlSanitize';
+  import { parseMarkdown } from '$lib/utils/markdown';
+  import { sanitizeTextForTTS, sanitizeVisualProse } from '$lib/utils/htmlSanitize';
   import { replacePicTagsWithImages, type ImageReplacementInfo } from '$lib/utils/inlineImageParser';
   import { database } from '$lib/services/database';
   import { eventBus, type ImageReadyEvent, type TTSQueuedEvent } from '$lib/services/events';
@@ -696,6 +696,21 @@ return sanitizeVisualProse(processed, entryId);
         isPlayingTTS = false;
       }
 
+      const textToNarrate = sanitizeTextForTTS(entry.content, {
+        removeTags: ttsSettings.removeHtmlTags,
+        removeAllTagContent: ttsSettings.removeAllHtmlContent,
+        htmlTagsToRemoveContent: ttsSettings.htmlTagsToRemoveContent.replace(/\s+/g, '').split(','),
+      });
+
+      // Remove excluded characters after HTML cleanup
+      const excludedCharArray = ttsSettings.excludedCharacters.replace(/\s+/g, '').split(',');
+      const hasExcludedChars = excludedCharArray.some(Boolean);
+      const finalNarrationText = hasExcludedChars
+        ? textToNarrate.replace(new RegExp(`[${excludedCharArray.filter(Boolean).map(escapeRegex).join('')}]`, 'g'), '')
+        : textToNarrate;
+
+      console.log('[StoryEntry] Generating TTS with text:', finalNarrationText);
+
       const response = await fetch(ttsSettings.endpoint, {
         method: 'POST',
         headers: {
@@ -704,7 +719,7 @@ return sanitizeVisualProse(processed, entryId);
         },
         body: JSON.stringify({
           model: ttsSettings.model || 'tts-1',
-          input: entry.content,
+          input: finalNarrationText,
           voice: ttsSettings.voice || 'alloy',
           speed: ttsSettings.speed || 1.0,
           response_format: 'mp3',

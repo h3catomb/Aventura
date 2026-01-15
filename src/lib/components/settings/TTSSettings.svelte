@@ -244,10 +244,100 @@
       </div>
     </div>
 
+    <!-- Excluded Characters (Text Input) -->
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-surface-300">
+        Excluded Characters
+      </label>
+      <p class="text-xs text-surface-500">Characters excluded from TTS narration (comma-separated)</p>
+      <input
+        type="text"
+        class="input input-sm w-full bg-surface-800 border-surface-600 text-surface-100"
+        value={settings.systemServicesSettings.tts.excludedCharacters}
+        oninput={(e) => {
+          settings.systemServicesSettings.tts.excludedCharacters = e.currentTarget.value;
+          settings.saveSystemServicesSettings();
+        }}
+        placeholder="Comma-separated characters (e.g., *, #, _, ~)"
+      />
+    </div>
+
+    <!-- HTML Tag Handling -->
+    <div class="flex items-center justify-between space-y-2 mt-4">
+      <div>
+        <h3 class="text-sm font-medium text-surface-200">Remove HTML tags</h3>
+        <p class="text-xs text-surface-500">Remove HTML tags from narrated text before sending to TTS. Always removes content of &lt;style&gt; tags as well.</p>
+      </div>
+      <button
+        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+        class:bg-accent-600={settings.systemServicesSettings.tts.removeHtmlTags}
+        class:bg-surface-600={!settings.systemServicesSettings.tts.removeHtmlTags}
+        onclick={() => {
+          settings.systemServicesSettings.tts.removeHtmlTags = !settings.systemServicesSettings.tts.removeHtmlTags;
+          settings.saveSystemServicesSettings();
+        }}
+        aria-label="Toggle HTML tag remove"
+      >
+        <span
+          class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+          class:translate-x-6={settings.systemServicesSettings.tts.removeHtmlTags}
+          class:translate-x-1={!settings.systemServicesSettings.tts.removeHtmlTags}
+        ></span>
+      </button>
+    </div>
+
+    {#if settings.systemServicesSettings.tts.removeHtmlTags}
+
+      <!-- HTML tags to remove content from (Text Input) -->
+      <div class="space-y-2">
+        <label class="text-sm font-medium text-surface-300">
+          HTML tags to remove content from
+        </label>
+        <p class="text-xs text-surface-500">Comma-separated list of HTML tags whose content should be removed before narration.</p>
+        <input
+          type="text"
+          class="input input-sm w-full bg-surface-800 border-surface-600 text-surface-100"
+          value={settings.systemServicesSettings.tts.htmlTagsToRemoveContent}
+          oninput={(e) => {
+            settings.systemServicesSettings.tts.htmlTagsToRemoveContent = e.currentTarget.value;
+            settings.saveSystemServicesSettings();
+          }}
+          placeholder="Comma-separated HTML tags (e.g., div, span, font)"
+          disabled={settings.systemServicesSettings.tts.removeAllHtmlContent}
+          class:text-surface-600={settings.systemServicesSettings.tts.removeAllHtmlContent}
+        />
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-surface-200">Remove all tag content</h3>
+            <p class="text-xs text-surface-500">Removes content inside any HTML tag before narration.</p>
+          </div>
+          <button
+            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            class:bg-accent-600={settings.systemServicesSettings.tts.removeAllHtmlContent}
+            class:bg-surface-600={!settings.systemServicesSettings.tts.removeAllHtmlContent}
+            onclick={() => {
+              settings.systemServicesSettings.tts.removeAllHtmlContent = !settings.systemServicesSettings.tts.removeAllHtmlContent;
+              settings.saveSystemServicesSettings();
+            }}
+            aria-label="Toggle full HTML content removal"
+          >
+            <span
+              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+              class:translate-x-6={settings.systemServicesSettings.tts.removeAllHtmlContent}
+              class:translate-x-1={!settings.systemServicesSettings.tts.removeAllHtmlContent}
+            ></span>
+          </button>
+        </div>
+      </div>
+      {/if}
+
     <!-- Reset Button -->
     <div class="border-t border-surface-700 pt-4 mt-4">
       <button
-        class="btn btn-secondary text-xs"
+        class="btn btn-secondary text-xs flex items-center gap-1"
         onclick={resetSettings}
       >
         <RefreshCw class="h-3 w-3 mr-1" />

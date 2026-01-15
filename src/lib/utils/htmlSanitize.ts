@@ -8,6 +8,12 @@
 
 import { scopeCssSelectors } from './cssScope';
 
+interface TTSSanitizeOptions {
+  removeTags: boolean;
+  removeAllTagContent: boolean;
+  htmlTagsToRemoveContent?: string[];
+}
+
 /**
  * Sanitize Visual Prose HTML for safe rendering.
  * @param html - Raw HTML content
@@ -204,4 +210,68 @@ export function extractVisualProseContent(html: string): string {
     return match[1];
   }
   return html;
+}
+
+/**
+ * Sanitize HTML specifically for TTS consumption.
+ * - Always strips <style> tag and its content
+ * - Optionally strips all tag content
+ * - Always removes the tags themselves; optionally drops the text inside specified tags
+ */
+export function sanitizeTextForTTS(html: string, options: TTSSanitizeOptions): string {
+  if (!html) return '';
+
+  // Santization disabled, return raw text
+  if (!options.removeTags) {
+    return html;
+  }
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const fragment = template.content;
+
+  // Always remove <style> tag and its content
+  fragment.querySelectorAll('style').forEach((node) => node.remove());
+
+
+  const shouldRemoveContent = (tag: string): boolean => {
+    if (options.removeAllTagContent) return true;
+    if (options.htmlTagsToRemoveContent && options.htmlTagsToRemoveContent.includes(tag)) return true;
+    return false;
+  };
+
+  const processNode = (node: Node): void => {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    // Process children first (depth-first)
+    const childNodes = Array.from(el.childNodes);
+    childNodes.forEach(processNode);
+
+    if (shouldRemoveContent(tag)) {
+      el.remove();
+      return;
+    }
+
+    // Unwrap the element while preserving its children
+    const parent = el.parentNode;
+    if (!parent) return;
+
+    while (el.firstChild) {
+      parent.insertBefore(el.firstChild, el);
+    }
+    parent.removeChild(el);
+  };
+
+  Array.from(fragment.childNodes).forEach(processNode);
+
+  const text = fragment.textContent ?? '';
+
+  return text
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
 }
