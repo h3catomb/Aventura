@@ -11,7 +11,7 @@ import { promptService } from '$lib/services/prompts';
 
 // Event types for progress updates
 export type StreamEvent =
-  | { type: 'tool_start'; toolName: string; args: Record<string, unknown> }
+  | { type: 'tool_start'; toolCallId: string; toolName: string; args: Record<string, unknown> }
   | { type: 'tool_end'; toolCall: ToolCallDisplay }
   | { type: 'thinking' }
   | { type: 'message'; message: ChatMessage } // Intermediate message (after tool calls)
@@ -381,17 +381,18 @@ export class InteractiveLorebookService {
             content: response.content,
             tool_calls: response.tool_calls,
             reasoning: response.reasoning ?? null,
+            reasoning_details: response.reasoning_details,
           });
 
           // Process each tool call
           for (const toolCall of response.tool_calls) {
-            const { result, pendingChange } = this.processToolCall(toolCall, entries);
+            const { result, pendingChange, parsedArgs } = this.processToolCall(toolCall, entries);
 
             // Track tool call for display
             const toolCallDisplay: ToolCallDisplay = {
               id: toolCall.id,
               name: toolCall.function.name,
-              args: JSON.parse(toolCall.function.arguments),
+              args: parsedArgs,
               result,
               pendingChange,
             };
@@ -420,6 +421,7 @@ export class InteractiveLorebookService {
             role: 'assistant',
             content: responseContent,
             reasoning: response.reasoning ?? null,
+            reasoning_details: response.reasoning_details,
           });
 
           // Exit the loop
@@ -452,7 +454,8 @@ export class InteractiveLorebookService {
    */
   async *sendMessageStreaming(
     userMessage: string,
-    entries: VaultLorebookEntry[]
+    entries: VaultLorebookEntry[],
+    signal?: AbortSignal
   ): AsyncGenerator<StreamEvent> {
     if (!this.initialized) {
       yield { type: 'error', error: 'Service not initialized. Call initialize() first.' };
@@ -479,6 +482,13 @@ export class InteractiveLorebookService {
     try {
       // Agentic loop - continue until AI responds without tool calls
       while (continueLoop && iterations < MAX_ITERATIONS) {
+        // Check for abort before each iteration
+        if (signal?.aborted) {
+          log('Request aborted by user');
+          yield { type: 'error', error: 'Request cancelled' };
+          return;
+        }
+
         iterations++;
         log(`Agentic loop iteration ${iterations}`);
 
@@ -505,6 +515,7 @@ export class InteractiveLorebookService {
             reasoningEffort: serviceSettings.reasoningEffort,
             providerOnly: serviceSettings.providerOnly,
           }),
+          signal,
         });
 
         log('Received response', {
@@ -524,22 +535,21 @@ export class InteractiveLorebookService {
             content: response.content,
             tool_calls: response.tool_calls,
             reasoning: response.reasoning ?? null,
+            reasoning_details: response.reasoning_details,
           });
 
           // Process each tool call
           for (const toolCall of response.tool_calls) {
-            const args = JSON.parse(toolCall.function.arguments);
+            const { result, pendingChange, parsedArgs } = this.processToolCall(toolCall, entries);
 
             // Yield tool start event
-            yield { type: 'tool_start', toolName: toolCall.function.name, args };
-
-            const { result, pendingChange } = this.processToolCall(toolCall, entries);
+            yield { type: 'tool_start', toolCallId: toolCall.id, toolName: toolCall.function.name, args: parsedArgs };
 
             // Track tool call for display
             const toolCallDisplay: ToolCallDisplay = {
               id: toolCall.id,
               name: toolCall.function.name,
-              args,
+              args: parsedArgs,
               result,
               pendingChange,
             };
@@ -582,6 +592,7 @@ export class InteractiveLorebookService {
             role: 'assistant',
             content: response.content ?? '',
             reasoning: response.reasoning ?? null,
+            reasoning_details: response.reasoning_details,
           });
 
           finalResponseContent = response.content ?? '';
@@ -606,7 +617,7 @@ export class InteractiveLorebookService {
       type: 'done',
       result: {
         response: finalResponseContent,
-        pendingChanges: allPendingChanges,
+        pendingChanges: [],
         toolCalls: [], // Tool calls were in intermediate messages
         reasoning: finalReasoning,
       },
@@ -619,8 +630,17 @@ export class InteractiveLorebookService {
   private processToolCall(
     toolCall: ToolCall,
     entries: VaultLorebookEntry[]
-  ): { result: string; pendingChange?: PendingChange } {
-    const args = JSON.parse(toolCall.function.arguments);
+  ): { result: string; pendingChange?: PendingChange; parsedArgs: Record<string, unknown> } {
+    let args: Record<string, unknown>;
+    try {
+      args = JSON.parse(toolCall.function.arguments);
+    } catch (e) {
+      log('Failed to parse tool call arguments:', toolCall.function.arguments, e);
+      return {
+        result: JSON.stringify({ error: 'Invalid tool call arguments - malformed JSON' }),
+        parsedArgs: {},
+      };
+    }
     log('Processing tool call:', toolCall.function.name, args);
 
     switch (toolCall.function.name) {
@@ -638,27 +658,33 @@ export class InteractiveLorebookService {
           disabled: e.disabled,
         }));
 
-        return { result: JSON.stringify(result) };
+        return { result: JSON.stringify(result), parsedArgs: args };
       }
 
       case 'get_entry': {
-        const index = args.index as number;
-        if (index < 0 || index >= entries.length) {
-          return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }) };
+        const index = this.parseIndexArg(args.index);
+        if (index === null) {
+          return {
+            result: JSON.stringify({ error: `Invalid index ${this.formatArg(args.index)}. Expected an integer.` }),
+            parsedArgs: args,
+          };
         }
-        return { result: JSON.stringify(entries[index]) };
+        if (index < 0 || index >= entries.length) {
+          return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }), parsedArgs: args };
+        }
+        return { result: JSON.stringify(entries[index]), parsedArgs: args };
       }
 
       case 'create_entry': {
         const newEntry: VaultLorebookEntry = {
-          name: args.name,
+          name: args.name as string,
           type: args.type as EntryType,
-          description: args.description,
-          keywords: args.keywords ?? [],
+          description: args.description as string,
+          keywords: (args.keywords as string[]) ?? [],
           injectionMode: (args.injectionMode as EntryInjectionMode) ?? 'keyword',
-          priority: args.priority ?? 10,
+          priority: (args.priority as number) ?? 10,
           disabled: false,
-          group: args.group ?? null,
+          group: (args.group as string | null) ?? null,
         };
 
         const pendingChange: PendingChange = {
@@ -676,26 +702,33 @@ export class InteractiveLorebookService {
             entry: newEntry,
           }),
           pendingChange,
+          parsedArgs: args,
         };
       }
 
       case 'update_entry': {
-        const index = args.index as number;
+        const index = this.parseIndexArg(args.index);
+        if (index === null) {
+          return {
+            result: JSON.stringify({ error: `Invalid index ${this.formatArg(args.index)}. Expected an integer.` }),
+            parsedArgs: args,
+          };
+        }
         if (index < 0 || index >= entries.length) {
-          return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }) };
+          return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }), parsedArgs: args };
         }
 
         const previous = entries[index];
         const updates: Partial<VaultLorebookEntry> = {};
 
-        if (args.name !== undefined) updates.name = args.name;
+        if (args.name !== undefined) updates.name = args.name as string;
         if (args.type !== undefined) updates.type = args.type as EntryType;
-        if (args.description !== undefined) updates.description = args.description;
-        if (args.keywords !== undefined) updates.keywords = args.keywords;
+        if (args.description !== undefined) updates.description = args.description as string;
+        if (args.keywords !== undefined) updates.keywords = args.keywords as string[];
         if (args.injectionMode !== undefined) updates.injectionMode = args.injectionMode as EntryInjectionMode;
-        if (args.priority !== undefined) updates.priority = args.priority;
-        if (args.disabled !== undefined) updates.disabled = args.disabled;
-        if (args.group !== undefined) updates.group = args.group;
+        if (args.priority !== undefined) updates.priority = args.priority as number;
+        if (args.disabled !== undefined) updates.disabled = args.disabled as boolean;
+        if (args.group !== undefined) updates.group = args.group as string | null;
 
         const pendingChange: PendingChange = {
           id: crypto.randomUUID(),
@@ -714,13 +747,20 @@ export class InteractiveLorebookService {
             updates,
           }),
           pendingChange,
+          parsedArgs: args,
         };
       }
 
       case 'delete_entry': {
-        const index = args.index as number;
+        const index = this.parseIndexArg(args.index);
+        if (index === null) {
+          return {
+            result: JSON.stringify({ error: `Invalid index ${this.formatArg(args.index)}. Expected an integer.` }),
+            parsedArgs: args,
+          };
+        }
         if (index < 0 || index >= entries.length) {
-          return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }) };
+          return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }), parsedArgs: args };
         }
 
         const entry = entries[index];
@@ -740,30 +780,39 @@ export class InteractiveLorebookService {
             entry: entry.name,
           }),
           pendingChange,
+          parsedArgs: args,
         };
       }
 
       case 'merge_entries': {
-        const indices = args.indices as number[];
+        const indices = this.parseIndicesArg(args.indices);
+        if (!indices) {
+          return {
+            result: JSON.stringify({
+              error: `Invalid indices ${this.formatArg(args.indices)}. Expected an array of integers.`,
+            }),
+            parsedArgs: args,
+          };
+        }
 
         // Validate all indices
         for (const index of indices) {
           if (index < 0 || index >= entries.length) {
-            return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }) };
+            return { result: JSON.stringify({ error: `Invalid index ${index}. Valid range: 0-${entries.length - 1}` }), parsedArgs: args };
           }
         }
 
         if (indices.length < 2) {
-          return { result: JSON.stringify({ error: 'Need at least 2 entries to merge' }) };
+          return { result: JSON.stringify({ error: 'Need at least 2 entries to merge' }), parsedArgs: args };
         }
 
         const previousEntries = indices.map(i => ({ ...entries[i] }));
 
         const mergedEntry: VaultLorebookEntry = {
-          name: args.merged_name,
+          name: args.merged_name as string,
           type: args.merged_type as EntryType,
-          description: args.merged_description,
-          keywords: args.merged_keywords ?? [],
+          description: args.merged_description as string,
+          keywords: (args.merged_keywords as string[]) ?? [],
           injectionMode: 'keyword',
           priority: Math.max(...previousEntries.map(e => e.priority)),
           disabled: false,
@@ -788,11 +837,12 @@ export class InteractiveLorebookService {
             sourceEntries: previousEntries.map(e => e.name),
           }),
           pendingChange,
+          parsedArgs: args,
         };
       }
 
       default:
-        return { result: JSON.stringify({ error: `Unknown tool: ${toolCall.function.name}` }) };
+        return { result: JSON.stringify({ error: `Unknown tool: ${toolCall.function.name}` }), parsedArgs: args };
     }
   }
 
@@ -856,24 +906,53 @@ export class InteractiveLorebookService {
         break;
 
       case 'update':
-        if (change.index !== undefined && change.updates) {
-          newEntries[change.index] = {
-            ...newEntries[change.index],
-            ...change.updates,
-          };
+        if (change.updates) {
+          const targetIndex = this.findEntryIndex(newEntries, change.previous, change.index);
+          if (targetIndex !== null) {
+            newEntries[targetIndex] = {
+              ...newEntries[targetIndex],
+              ...change.updates,
+            };
+          } else {
+            log('Update skipped: entry not found for pending change', { changeId: change.id });
+          }
         }
         break;
 
       case 'delete':
-        if (change.index !== undefined) {
-          newEntries.splice(change.index, 1);
+        {
+          const targetIndex = this.findEntryIndex(newEntries, change.previous, change.index);
+          if (targetIndex !== null) {
+            newEntries.splice(targetIndex, 1);
+          } else {
+            log('Delete skipped: entry not found for pending change', { changeId: change.id });
+          }
         }
         break;
 
       case 'merge':
         if (change.indices && change.entry) {
+          const indicesToRemove = new Set<number>();
+
+          if (change.previousEntries && change.previousEntries.length > 0) {
+            for (const previousEntry of change.previousEntries) {
+              const targetIndex = this.findEntryIndex(newEntries, previousEntry);
+              if (targetIndex !== null) {
+                indicesToRemove.add(targetIndex);
+              }
+            }
+          }
+
+          if (indicesToRemove.size === 0) {
+            for (const index of change.indices) {
+              if (index >= 0 && index < newEntries.length) {
+                indicesToRemove.add(index);
+              }
+            }
+          }
+
           // Remove source entries (in reverse order to preserve indices)
-          const sortedIndices = [...change.indices].sort((a, b) => b - a);
+          const sortedIndices = [...indicesToRemove].sort((a, b) => b - a);
           for (const index of sortedIndices) {
             newEntries.splice(index, 1);
           }
@@ -884,6 +963,106 @@ export class InteractiveLorebookService {
     }
 
     return newEntries;
+  }
+
+  private findEntryIndex(
+    entries: VaultLorebookEntry[],
+    target?: VaultLorebookEntry,
+    fallbackIndex?: number
+  ): number | null {
+    if (target) {
+      const exactIndex = entries.findIndex(entry => this.entriesEqual(entry, target));
+      if (exactIndex !== -1) {
+        return exactIndex;
+      }
+
+      const identityIndex = entries.findIndex(entry => this.entriesMatchIdentity(entry, target));
+      if (identityIndex !== -1) {
+        return identityIndex;
+      }
+    }
+
+    if (fallbackIndex !== undefined && fallbackIndex >= 0 && fallbackIndex < entries.length) {
+      if (!target || this.entriesMatchIdentity(entries[fallbackIndex], target)) {
+        return fallbackIndex;
+      }
+    }
+
+    return null;
+  }
+
+  private entriesEqual(a: VaultLorebookEntry, b: VaultLorebookEntry): boolean {
+    if (a === b) {
+      return true;
+    }
+
+    if (
+      a.name !== b.name ||
+      a.type !== b.type ||
+      a.description !== b.description ||
+      a.injectionMode !== b.injectionMode ||
+      a.priority !== b.priority ||
+      a.disabled !== b.disabled ||
+      a.group !== b.group
+    ) {
+      return false;
+    }
+
+    if (a.keywords.length !== b.keywords.length) {
+      return false;
+    }
+
+    for (let i = 0; i < a.keywords.length; i++) {
+      if (a.keywords[i] !== b.keywords[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private entriesMatchIdentity(a: VaultLorebookEntry, b: VaultLorebookEntry): boolean {
+    return a.name === b.name && a.type === b.type && a.group === b.group;
+  }
+
+  private parseIndexArg(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isInteger(parsed)) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  private parseIndicesArg(value: unknown): number[] | null {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+    const parsed: number[] = [];
+    for (const item of value) {
+      const index = this.parseIndexArg(item);
+      if (index === null) {
+        return null;
+      }
+      parsed.push(index);
+    }
+    return parsed;
+  }
+
+  private formatArg(value: unknown): string {
+    if (value === undefined) {
+      return 'undefined';
+    }
+    try {
+      const json = JSON.stringify(value);
+      return json ?? String(value);
+    } catch {
+      return String(value);
+    }
   }
 
   /**

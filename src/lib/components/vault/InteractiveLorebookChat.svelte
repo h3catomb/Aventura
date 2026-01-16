@@ -8,15 +8,18 @@
     type StreamEvent
   } from '$lib/services/ai/interactiveLorebook';
   import { OpenAIProvider } from '$lib/services/ai/openrouter';
-  import { settings } from '$lib/stores/settings.svelte';
+  import { settings, getDefaultInteractiveLorebookSettings } from '$lib/stores/settings.svelte';
   import DiffView from './DiffView.svelte';
   import {
     X, Send, Loader2, Bot, User, ChevronDown, ChevronUp,
     CheckCheck, AlertCircle, Brain, Wrench
   } from 'lucide-svelte';
   import { fade, slide } from 'svelte/transition';
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { parseMarkdown } from '$lib/utils/markdown';
+
+  // AbortController for cancelling ongoing requests
+  let abortController: AbortController | null = null;
 
   interface Props {
     lorebook: VaultLorebook;
@@ -52,9 +55,19 @@
     initializeService();
   });
 
+  // Clean up on unmount - cancel any ongoing requests
+  onDestroy(() => {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+  });
+
   function initializeService() {
     try {
-      const profileId = settings.apiSettings.mainNarrativeProfileId;
+      // Use the interactive lorebook profile if configured, otherwise fall back to main narrative profile
+      const ilSettings = settings.systemServicesSettings.interactiveLorebook ?? getDefaultInteractiveLorebookSettings();
+      const profileId = ilSettings.profileId ?? settings.apiSettings.mainNarrativeProfileId;
       const apiSettings = settings.getApiSettingsForProfile(profileId);
 
       if (!apiSettings.openaiApiKey) {
@@ -103,9 +116,12 @@
     isThinking = true;
     activeToolCalls = [];
 
+    // Create new AbortController for this request
+    abortController = new AbortController();
+
     try {
       // Use async version with progress events
-      for await (const event of service.sendMessageStreaming(userMessage, entries)) {
+      for await (const event of service.sendMessageStreaming(userMessage, entries, abortController.signal)) {
         switch (event.type) {
           case 'thinking':
             isThinking = true;
@@ -114,9 +130,9 @@
 
           case 'tool_start':
             isThinking = false;
-            // Add placeholder tool call to show it's in progress
+            // Add placeholder tool call to show it's in progress (use actual ID for matching with tool_end)
             activeToolCalls = [...activeToolCalls, {
-              id: crypto.randomUUID(),
+              id: event.toolCallId,
               name: event.toolName,
               args: event.args,
               result: '...',
@@ -126,9 +142,9 @@
             break;
 
           case 'tool_end':
-            // Update the tool call with the result
+            // Update the tool call with the result (match by ID to handle multiple calls with same name)
             activeToolCalls = activeToolCalls.map(tc =>
-              tc.name === event.toolCall.name && tc.result === '...'
+              tc.id === event.toolCall.id
                 ? event.toolCall
                 : tc
             );
@@ -186,6 +202,11 @@
         }
       }
     } catch (e) {
+      // Ignore abort errors (user cancelled or component unmounted)
+      if (e instanceof Error && e.name === 'AbortError') {
+        return;
+      }
+
       error = e instanceof Error ? e.message : 'Failed to get response';
 
       // Add error message
@@ -200,6 +221,7 @@
       isGenerating = false;
       isThinking = false;
       activeToolCalls = [];
+      abortController = null;
     }
   }
 
@@ -257,10 +279,30 @@
   }
 
   async function handleApproveAll() {
-    const pendingIds = new Set(pendingChanges.filter(c => c.status === 'pending').map(c => c.id));
+    const pendingList = pendingChanges.filter(c => c.status === 'pending');
+    const pendingIds = new Set(pendingList.map(c => c.id));
     let currentEntries = entries;
 
-    for (const change of pendingChanges.filter(c => c.status === 'pending')) {
+    // Sort changes to apply safely:
+    // 1. Deletes and merges must be applied from highest index to lowest to prevent index shifting
+    // 2. Creates go last (they append to end, no index issues)
+    // 3. Updates can go in any order (they modify in place)
+    const sortedChanges = [...pendingList].sort((a, b) => {
+      // Creates go last
+      if (a.type === 'create' && b.type !== 'create') return 1;
+      if (b.type === 'create' && a.type !== 'create') return -1;
+
+      // For deletes and merges, sort by highest index first
+      if (a.type === 'delete' || a.type === 'merge') {
+        const aMaxIndex = a.type === 'merge' ? Math.max(...(a.indices ?? [0])) : (a.index ?? 0);
+        const bMaxIndex = b.type === 'merge' ? Math.max(...(b.indices ?? [0])) : (b.index ?? 0);
+        return bMaxIndex - aMaxIndex; // Descending order
+      }
+
+      return 0;
+    });
+
+    for (const change of sortedChanges) {
       currentEntries = service!.applyChange(change, currentEntries);
       service!.handleApproval(change, true);
     }
