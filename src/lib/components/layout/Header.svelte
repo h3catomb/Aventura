@@ -125,11 +125,45 @@
   class="flex h-12 sm:h-14 items-center justify-between border-b border-surface-700 bg-surface-800 px-1 sm:px-4"
 >
   <!-- Left side: Story title -->
-  <div class="flex items-center sm:gap-3 min-w-0">
+  <div class="flex items-center min-w-0">
+    <div class="flex items-center gap-2 px-2">
+      {#if story.currentStory}
+        <Feather class="h-5 w-5 text-accent-500 flex-shrink-0" />
+        <span
+          class="font-semibold text-surface-100 text-sm sm:text-base truncate max-w-[160px] sm:max-w-none"
+        >
+          {story.currentStory.title}
+        </span>
+        {#if settings.uiSettings.showWordCount}
+          <span class="text-sm text-surface-500 hidden lg:inline"
+            >({story.wordCount} words)</span
+          >
+        {/if}
+      {:else}
+        <!-- App Branding (Library Mode) -->
+        <Feather class="h-5 w-5 text-accent-500 flex-shrink-0" />
+        <span class="font-semibold text-surface-100 text-base">Aventura</span>
+      {/if}
+    </div>
+  </div>
+
+  <!-- Center: Navigation tabs (Removed) -->
+  <div class="flex-1"></div>
+
+  <!-- Right side: Export and Settings -->
+
+  <div class="flex items-center gap-0 sm:gap-1">
+    {#if ui.isGenerating}
+      <div class="flex items-center gap-1.5 text-sm text-accent-400">
+        <div class="h-2 w-2 animate-pulse rounded-full bg-accent-500"></div>
+        <span class="hidden sm:inline">Generating...</span>
+      </div>
+    {/if}
+
+    <!-- Back to Library Button (right side) -->
     {#if story.currentStory}
-      <!-- Back to Library Button -->
       <button
-        class="btn-ghost flex items-center justify-center rounded-lg p-2 text-surface-400 hover:bg-surface-700 hover:text-surface-100"
+        class="btn-ghost flex items-center justify-center rounded-lg p-2 text-surface-400 hover:bg-surface-700 hover:text-surface-100 min-h-[44px] min-w-[44px]"
         onclick={() => {
           story.closeStory();
           ui.setActivePanel("library");
@@ -138,37 +172,6 @@
       >
         <Library class="h-5 w-5" />
       </button>
-
-      <span
-        class="text-surface-300 truncate max-w-[160px] sm:max-w-none text-sm sm:text-base font-medium"
-      >
-        {story.currentStory.title}
-      </span>
-      {#if settings.uiSettings.showWordCount}
-        <span class="text-sm text-surface-500 hidden lg:inline"
-          >({story.wordCount} words)</span
-        >
-      {/if}
-    {:else}
-      <!-- App Branding (Library Mode) -->
-      <div class="flex items-center gap-2 px-2">
-        <Feather class="h-5 w-5 text-accent-500 flex-shrink-0" />
-        <span class="font-semibold text-surface-100 text-base">Aventura</span>
-      </div>
-    {/if}
-  </div>
-
-  <!-- Center: Navigation tabs (Removed) -->
-  <div class="flex-1"></div>
-
-  <!-- Right side: Export and Settings -->
-
-  <div class="flex items-center gap-1 sm:gap-2">
-    {#if ui.isGenerating}
-      <div class="flex items-center gap-1.5 text-sm text-accent-400">
-        <div class="h-2 w-2 animate-pulse rounded-full bg-accent-500"></div>
-        <span class="hidden sm:inline">Generating...</span>
-      </div>
     {/if}
 
     <!-- Image generation status indicators -->
