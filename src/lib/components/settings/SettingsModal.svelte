@@ -763,7 +763,7 @@
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-surface-700 px-3 pb-1 -mt-2 flex-shrink-0 bg-surface-800"
+      class="flex items-center justify-between border-b border-surface-700 px-3 md:py-4 -mt-2 flex-shrink-0 bg-surface-800"
     >
       <div class="flex items-center gap-2">
         <button
@@ -792,7 +792,7 @@
         </h2>
       </div>
       <button
-        class="btn-ghost rounded-lg p-1.5 hover:bg-surface-700 transition-colors -mr-8 md:mr-0"
+        class="btn-ghost rounded-lg p-1.5 hover:bg-surface-700 transition-colors -mr-8 md:-mr-3"
         onclick={() => safeClose()}
         disabled={isResettingSettings}
       >
@@ -1167,6 +1167,33 @@
                     class:translate-x-1={!settings.uiSettings
                       .disableActionPrefixes}
                   ></span>
+              </button>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="text-sm font-medium text-surface-300"
+                    >Show Reasoning Block</label
+                  >
+                  <p class="text-xs text-surface-500">
+                    Show thought process display
+                  </p>
+                </div>
+                <button
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                  class:bg-accent-600={settings.uiSettings.showReasoning}
+                  class:bg-surface-600={!settings.uiSettings.showReasoning}
+                  onclick={() =>
+                    settings.setShowReasoning(
+                      !settings.uiSettings.showReasoning,
+                    )}
+                  aria-label="Toggle show reasoning"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                    class:translate-x-6={settings.uiSettings.showReasoning}
+                    class:translate-x-1={!settings.uiSettings.showReasoning}
+                  ></span>
                 </button>
               </div>
 
@@ -1178,7 +1205,7 @@
 
                 <!-- Update Status -->
                 <div class="card bg-surface-900 p-3 mb-3">
-                  <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-c11enter justify-between mb-2">
                     <div>
                       <p class="text-sm text-surface-200">
                         {#if updateInfo?.available}

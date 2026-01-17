@@ -20,13 +20,13 @@
   let { children }: { children?: Snippet } = $props();
 
   // Swipe handlers for mobile sidebar toggle
-  function handleSwipeRight() {
+  function handleSwipeLeft() {
     if (story.currentStory && !ui.sidebarOpen) {
       ui.toggleSidebar();
     }
   }
 
-  function handleSwipeLeft() {
+  function handleSwipeRight() {
     if (ui.sidebarOpen) {
       ui.toggleSidebar();
     }
@@ -46,18 +46,11 @@
     ></button>
   {/if}
 
-  <!-- Sidebar -->
-  {#if ui.sidebarOpen && story.currentStory}
-    <div class="sidebar-container">
-      <Sidebar />
-    </div>
-  {/if}
-
-  <!-- Left edge swipe zone for opening sidebar (when closed) -->
+  <!-- Right edge swipe zone for opening sidebar (when closed) -->
   {#if !ui.sidebarOpen && story.currentStory}
     <div
       class="swipe-edge-zone"
-      use:swipe={{ onSwipeRight: handleSwipeRight, threshold: 30 }}
+      use:swipe={{ onSwipeLeft: handleSwipeLeft, threshold: 30 }}
     ></div>
   {/if}
 
@@ -81,6 +74,13 @@
       {/if}
     </main>
   </div>
+
+  <!-- Sidebar (Right aligned) -->
+  {#if ui.sidebarOpen && story.currentStory}
+    <div class="sidebar-container">
+      <Sidebar />
+    </div>
+  {/if}
 
   <!-- Settings Modal -->
   {#if ui.settingsModalOpen}
@@ -149,10 +149,10 @@
     z-index: 50;
   }
 
-  /* Left edge swipe zone */
+  /* Right edge swipe zone */
   .swipe-edge-zone {
     position: fixed;
-    left: 0;
+    right: 0;
     top: 0;
     width: 20px;
     height: 100%;
@@ -168,7 +168,7 @@
 
     .sidebar-container {
       position: fixed;
-      left: 0;
+      right: 0;
       top: max(env(safe-area-inset-top, 0px), 28px);
       height: calc(100% - max(env(safe-area-inset-top, 0px), 28px));
       animation: slide-in 0.2s ease-out;
@@ -182,7 +182,7 @@
 
   @keyframes slide-in {
     from {
-      transform: translateX(-100%);
+      transform: translateX(100%);
     }
     to {
       transform: translateX(0);

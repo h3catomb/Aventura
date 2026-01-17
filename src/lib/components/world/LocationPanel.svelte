@@ -122,9 +122,10 @@
         </div>
         <button
           class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
-          onclick={() => startEdit(story.currentLocation)}
+          onclick={() => story.currentLocation && startEdit(story.currentLocation)}
           title="Edit location"
         >
+
           <Pencil class="h-3.5 w-3.5" />
         </button>
       </div>
@@ -152,7 +153,7 @@
             </button>
             <button
               class="btn btn-primary text-xs"
-              onclick={() => saveEdit(story.currentLocation)}
+              onclick={() => story.currentLocation && saveEdit(story.currentLocation)}
               disabled={!editName.trim()}
             >
               Save
