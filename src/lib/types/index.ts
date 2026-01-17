@@ -115,6 +115,7 @@ export interface StoryEntry {
   createdAt: number;
   metadata: EntryMetadata | null;
   branchId: string | null;  // Branch this entry belongs to (null = main branch for legacy)
+  reasoning?: string; // In-memory only reasoning (chain of thought)
 }
 
 export interface EntryMetadata {

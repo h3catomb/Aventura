@@ -740,6 +740,20 @@ class StoryStore {
   }
 
   /**
+   * Update an entry's reasoning content (in-memory only).
+   * This allows displaying the reasoning content without persisting it to the database.
+   */
+  updateEntryReasoning(entryId: string, reasoning: string): void {
+    const entry = this.entries.find(e => e.id === entryId);
+    if (!entry) return;
+
+    // Direct update to state array since it's not persisted
+    this.entries = this.entries.map(e => 
+      e.id === entryId ? { ...e, reasoning } : e
+    );
+  }
+
+  /**
    * Delete all entries from a given position onward.
    * Used for entry-only retry restore (persistent retry).
    */

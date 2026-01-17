@@ -1,7 +1,8 @@
 <script lang="ts">
   import { ui } from '$lib/stores/ui.svelte';
-  import { BookOpen, Brain } from 'lucide-svelte';
+  import { BookOpen } from 'lucide-svelte';
   import { parseMarkdown } from '$lib/utils/markdown';
+  import ReasoningBlock from './ReasoningBlock.svelte';
 
   // Reactive binding to streaming content
   let content = $derived(ui.streamingContent);
@@ -14,40 +15,35 @@
     isVisualProse ? content : parseMarkdown(content)
   );
 
-  // Show thinking state when streaming but no content yet
-  let isThinking = $derived(ui.isStreaming && content.length === 0);
+  // Show thinking state when streaming but no content yet (and no reasoning)
+  let reasoning = $derived(ui.streamingReasoning);
+  let isThinking = $derived(ui.isStreaming && content.length === 0 && reasoning.length === 0);
 </script>
 
-{#if isThinking}
-  <!-- Thinking/reasoning indicator -->
-  <div class="rounded-lg border-l-4 border-l-accent-500 bg-accent-500/5 p-4 animate-fade-in">
-    <div class="flex items-center gap-3">
-      <div class="rounded-full bg-surface-700 p-1.5">
-        <Brain class="h-4 w-4 text-accent-400 animate-pulse" />
-      </div>
-      <div class="flex items-center gap-2 text-surface-400">
-        <span class="text-sm italic">Thinking</span>
-        <span class="thinking-dots">
-          <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
-        </span>
-      </div>
-    </div>
-  </div>
-{:else}
-  <!-- Streaming content -->
+  <!-- Streaming content container -->
   <div class="rounded-lg border-l-4 border-l-accent-500 bg-accent-500/5 p-4 animate-fade-in">
     <div class="flex items-start gap-3">
-      <div class="mt-0.5 rounded-full bg-surface-700 p-1.5">
+      <!-- Icon Column -->
+      <div class="rounded-full bg-surface-700 p-1.5">
         <BookOpen class="h-4 w-4 text-accent-400 animate-pulse" />
       </div>
-      <div class="flex-1">
-        <div class="story-text prose-content streaming-content">
-          {@html renderedContent}<span class="streaming-cursor"></span>
-        </div>
+
+      <!-- Main Content Column -->
+      <div class="flex-1 min-w-0 flex flex-col gap-4">
+        <!-- Reasoning Block -->
+        {#if reasoning || isThinking}
+          <ReasoningBlock content={reasoning} isStreaming={true} isVisualProse={isVisualProse} />
+        {/if}
+
+        <!-- Story Content -->
+        {#if content.length > 0}
+          <div class="story-text prose-content streaming-content animate-fade-in">
+            {@html renderedContent}<span class="streaming-cursor"></span>
+          </div>
+        {/if}
       </div>
     </div>
   </div>
-{/if}
 
 <style>
   @keyframes blink {

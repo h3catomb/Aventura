@@ -5,6 +5,7 @@
   import { settings } from '$lib/stores/settings.svelte';
   import { User, BookOpen, Info, Pencil, Trash2, Check, X, RefreshCw, RotateCcw, Loader2, GitBranch, Bookmark, Volume2 } from 'lucide-svelte';
   import { parseMarkdown } from '$lib/utils/markdown';
+  import { slide } from 'svelte/transition';
   import { sanitizeTextForTTS, sanitizeVisualProse } from '$lib/utils/htmlSanitize';
   import { replacePicTagsWithImages, type ImageReplacementInfo } from '$lib/utils/inlineImageParser';
   import { database } from '$lib/services/database';
@@ -13,6 +14,7 @@
   import { ChutesImageProvider } from '$lib/services/ai/chutesImageProvider';
   import { promptService } from '$lib/services/prompts';
   import { onMount } from 'svelte';
+  import ReasoningBlock from './ReasoningBlock.svelte';
 
   let { entry }: { entry: StoryEntry } = $props();
 
@@ -960,6 +962,13 @@ return sanitizeVisualProse(processed, entryId);
         </div>
 {:else}
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <!-- Reasoning Block (if present) -->
+        {#if entry.reasoning}
+          <div class="mb-4">
+            <ReasoningBlock content={entry.reasoning} isStreaming={false} isVisualProse={visualProseMode} />
+          </div>
+        {/if}
+
         <div class="story-text prose-content" class:visual-prose-container={visualProseMode && entry.type === 'narration'} onclick={handleContentClick}>
           {#if entry.type === 'narration'}
             {#if visualProseMode && inlineImageMode}

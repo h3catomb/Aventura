@@ -101,6 +101,7 @@ class UIStore {
 
   // Streaming state
   streamingContent = $state('');
+  streamingReasoning = $state('');
   isStreaming = $state(false);
   private htmlRenderer: StreamingHtmlRenderer | null = null;
   private visualProseEntryId: string | null = null;
@@ -268,6 +269,7 @@ class UIStore {
   startStreaming(visualProseMode = false, entryId?: string) {
     this.isStreaming = true;
     this.streamingContent = '';
+    this.streamingReasoning = '';
     if (visualProseMode && entryId) {
       this.htmlRenderer = new StreamingHtmlRenderer(entryId);
       this.visualProseEntryId = entryId;
@@ -283,6 +285,10 @@ class UIStore {
     } else {
       this.streamingContent += content;
     }
+  }
+
+  appendReasoningContent(content: string) {
+    this.streamingReasoning += content;
   }
 
   endStreaming(): string {

@@ -785,6 +785,7 @@
         null;
 
       let fullResponse = "";
+      let fullReasoning = "";
       let chunkCount = 0;
 
       // Capture current story reference for use after streaming
@@ -800,6 +801,7 @@
       while (retryCount < MAX_EMPTY_RESPONSE_RETRIES) {
         // Reset for each attempt
         fullResponse = "";
+        fullReasoning = "";
         chunkCount = 0;
 
         if (retryCount > 0) {
@@ -850,6 +852,12 @@
             });
           }
 
+          // Handle reasoning chunk
+          if (chunk.reasoning) {
+            ui.appendReasoningContent(chunk.reasoning);
+            fullReasoning += chunk.reasoning;
+          }
+
           if (chunk.done) {
             log("Stream done signal received");
             break;
@@ -898,6 +906,11 @@
 
         // Emit NarrativeResponse event
         emitNarrativeResponse(narrationEntry.id, fullResponse);
+
+        // Update in-memory reasoning if present
+        if (fullReasoning) {
+          story.updateEntryReasoning(narrationEntry.id, fullReasoning);
+        }
 
         // Phase 2.5: Trigger TTS for auto-play if enabled (background, non-blocking)
         // Do this IMMEDIATELY after text generation is complete, before classification
