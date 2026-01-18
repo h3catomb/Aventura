@@ -1471,7 +1471,7 @@
         // Restore activation data from backup to preserve lorebook stickiness state
         ui.restoreActivationData(backup.activationData, backup.storyPosition);
 
-        // Restore story state from backup
+        // Restore story state from backup (this locks editing internally)
         await story.restoreFromRetryBackup({
           entries: backup.entries,
           characters: backup.characters,
@@ -1483,6 +1483,9 @@
         });
       } else {
         // Persistent restore (backup without full snapshots, but with entity IDs)
+        // Lock editing for persistent restore path
+        story.lockRetryInProgress();
+
         // Clear activation data but don't save yet - generation will rebuild it
         ui.clearActivationData();
 
@@ -1554,6 +1557,12 @@
     } catch (error) {
       log("Retry last message failed", error);
       console.error("Retry last message failed:", error);
+    } finally {
+      // Unlock editing if it was locked by persistent restore path
+      // (Full state restore unlocks internally in restoreFromRetryBackup)
+      if (backup && !backup.hasFullState) {
+        story.unlockRetryInProgress();
+      }
     }
   }
 

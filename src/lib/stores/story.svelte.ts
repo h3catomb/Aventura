@@ -62,6 +62,14 @@ class StoryStore {
   // Entry ID to index map for O(1) lookups
   private _entryIdToIndex: Map<string, number> = new Map();
 
+  // Retry operation lock - prevents editing during retry restore
+  private _isRetryInProgress = $state(false);
+
+  // Public getter to check if retry is in progress
+  get isRetryInProgress(): boolean {
+    return this._isRetryInProgress;
+  }
+
   // Derived states
   get currentLocation(): Location | undefined {
     return this.locations.find(l => l.current);
@@ -661,6 +669,13 @@ class StoryStore {
   async updateEntry(entryId: string, content: string): Promise<void> {
     if (!this.currentStory) throw new Error('No story loaded');
 
+    // Prevent editing during any generation or retry restore to avoid race conditions
+    // Silently return - UI should disable buttons using ui.isGenerating
+    if (this._isRetryInProgress || ui.isGenerating) {
+      log('Edit blocked - generation or retry in progress');
+      return;
+    }
+
     const existingEntry = this.entries.find(e => e.id === entryId);
     if (!existingEntry) throw new Error('Entry not found');
 
@@ -694,6 +709,13 @@ class StoryStore {
   // Delete a story entry
   async deleteEntry(entryId: string): Promise<void> {
     if (!this.currentStory) throw new Error('No story loaded');
+
+    // Prevent deleting during any generation or retry restore to avoid race conditions
+    // Silently return - UI should disable buttons using ui.isGenerating
+    if (this._isRetryInProgress || ui.isGenerating) {
+      log('Delete blocked - generation or retry in progress');
+      return;
+    }
 
     const existingEntry = this.entries.find(e => e.id === entryId);
     if (!existingEntry) throw new Error('Entry not found');
@@ -2469,86 +2491,114 @@ const newConfig = { ...this.memoryConfig, ...updates };
   }): Promise<void> {
     if (!this.currentStory) throw new Error('No story loaded');
 
-    // Debug: Log character visual descriptors before restore
-    const currentCharDescriptors = this.characters.map(c => ({
-      name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
-    }));
-    const backupCharDescriptors = backup.characters.map(c => ({
-      name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
-    }));
-    log('RESTORE DEBUG - Before restore:', {
-      currentCharDescriptors,
-      backupCharDescriptors,
-    });
+    // Lock editing during retry restore to prevent race conditions
+    this._isRetryInProgress = true;
+    log('Retry restore started - editing locked');
 
-    log('Restoring from retry backup...', {
-      entriesCount: backup.entries.length,
-      currentEntriesCount: this.entries.length,
-      embeddedImagesCount: backup.embeddedImages.length,
-    });
+    try {
+      // Debug: Log character visual descriptors before restore
+      const currentCharDescriptors = this.characters.map(c => ({
+        name: c.name,
+        visualDescriptors: [...c.visualDescriptors],
+      }));
+      const backupCharDescriptors = backup.characters.map(c => ({
+        name: c.name,
+        visualDescriptors: [...c.visualDescriptors],
+      }));
+      log('RESTORE DEBUG - Before restore:', {
+        currentCharDescriptors,
+        backupCharDescriptors,
+      });
 
-    // Restore to database
-    await database.restoreRetryBackup(
-      this.currentStory.id,
-      backup.entries,
-      backup.characters,
-      backup.locations,
-      backup.items,
-      backup.storyBeats,
-      backup.embeddedImages
-    );
+      log('Restoring from retry backup...', {
+        entriesCount: backup.entries.length,
+        currentEntriesCount: this.entries.length,
+        embeddedImagesCount: backup.embeddedImages.length,
+      });
 
-    // Reload from database to ensure a clean, fully restored state
-    // Note: Lorebook entries are NOT reloaded as they persist across retry operations
-    const [entries, characters, locations, items, storyBeats] = await Promise.all([
-      database.getStoryEntries(this.currentStory.id),
-      database.getCharacters(this.currentStory.id),
-      database.getLocations(this.currentStory.id),
-      database.getItems(this.currentStory.id),
-      database.getStoryBeats(this.currentStory.id),
-    ]);
+      // Restore to database
+      await database.restoreRetryBackup(
+        this.currentStory.id,
+        backup.entries,
+        backup.characters,
+        backup.locations,
+        backup.items,
+        backup.storyBeats,
+        backup.embeddedImages
+      );
 
-    // Debug: Log what we got back from database
-    const dbCharDescriptors = characters.map(c => ({
-      name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
-    }));
-    log('RESTORE DEBUG - After DB reload:', {
-      dbCharDescriptors,
-    });
+      // Reload from database to ensure a clean, fully restored state
+      // Note: Lorebook entries are NOT reloaded as they persist across retry operations
+      const [entries, characters, locations, items, storyBeats] = await Promise.all([
+        database.getStoryEntries(this.currentStory.id),
+        database.getCharacters(this.currentStory.id),
+        database.getLocations(this.currentStory.id),
+        database.getItems(this.currentStory.id),
+        database.getStoryBeats(this.currentStory.id),
+      ]);
 
-    // Update local state
-    // Note: Lorebook entries are NOT updated as they persist across retry operations
-    this.entries = entries;
-    this.characters = characters;
-    this.locations = locations;
-    this.items = items;
-    this.storyBeats = storyBeats;
+      // Debug: Log what we got back from database
+      const dbCharDescriptors = characters.map(c => ({
+        name: c.name,
+        visualDescriptors: [...c.visualDescriptors],
+      }));
+      log('RESTORE DEBUG - After DB reload:', {
+        dbCharDescriptors,
+      });
 
-    // Invalidate caches after state restore
-    this.invalidateWordCountCache();
-    this.invalidateChapterCache();
+      // Update local state
+      // Note: Lorebook entries are NOT updated as they persist across retry operations
+      this.entries = entries;
+      this.characters = characters;
+      this.locations = locations;
+      this.items = items;
+      this.storyBeats = storyBeats;
 
-    // Debug: Verify memory state matches
-    const finalCharDescriptors = this.characters.map(c => ({
-      name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
-    }));
-    log('RESTORE DEBUG - Final state:', {
-      finalCharDescriptors,
-    });
+      // Invalidate caches after state restore
+      this.invalidateWordCountCache();
+      this.invalidateChapterCache();
 
-    // Restore time tracker if provided (null clears)
-    await this.restoreTimeTrackerSnapshot(backup.timeTracker);
+      // Debug: Verify memory state matches
+      const finalCharDescriptors = this.characters.map(c => ({
+        name: c.name,
+        visualDescriptors: [...c.visualDescriptors],
+      }));
+      log('RESTORE DEBUG - Final state:', {
+        finalCharDescriptors,
+      });
 
-    log('Retry backup restored', {
-      entries: this.entries.length,
-      characters: this.characters.length,
-      locations: this.locations.length,
-      embeddedImages: backup.embeddedImages.length,
-    });
+      // Restore time tracker if provided (null clears)
+      await this.restoreTimeTrackerSnapshot(backup.timeTracker);
+
+      log('Retry backup restored', {
+        entries: this.entries.length,
+        characters: this.characters.length,
+        locations: this.locations.length,
+        embeddedImages: backup.embeddedImages.length,
+      });
+    } finally {
+      // Always unlock editing when restore completes or fails
+      this._isRetryInProgress = false;
+      log('Retry restore completed - editing unlocked');
+    }
+  }
+
+  /**
+   * Lock editing during retry operations.
+   * Used by persistent restore path that doesn't call restoreFromRetryBackup.
+   */
+  lockRetryInProgress(): void {
+    this._isRetryInProgress = true;
+    log('Retry operation locked - editing disabled');
+  }
+
+  /**
+   * Unlock editing after retry operations complete.
+   * Used by persistent restore path that doesn't call restoreFromRetryBackup.
+   */
+  unlockRetryInProgress(): void {
+    this._isRetryInProgress = false;
+    log('Retry operation unlocked - editing enabled');
   }
 
   /**

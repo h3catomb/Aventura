@@ -1029,15 +1029,17 @@
         </button>
         <button
           onclick={startEdit}
-          class="entry-action-btn text-surface-400 hover:bg-surface-600 hover:text-surface-200"
-          title="Edit"
+          disabled={ui.isGenerating}
+          class="entry-action-btn text-surface-400 hover:bg-surface-600 hover:text-surface-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={ui.isGenerating ? "Cannot edit during generation" : "Edit"}
         >
           <Pencil class="h-4 w-4" />
         </button>
         <button
           onclick={() => (isDeleting = true)}
-          class="entry-action-btn text-surface-400 hover:bg-red-500/15 hover:text-red-400"
-          title="Delete"
+          disabled={ui.isGenerating}
+          class="entry-action-btn text-surface-400 hover:bg-red-500/15 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={ui.isGenerating ? "Cannot delete during generation" : "Delete"}
         >
           <Trash2 class="h-4 w-4" />
         </button>
