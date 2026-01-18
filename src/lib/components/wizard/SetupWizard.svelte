@@ -1868,10 +1868,10 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
   aria-modal="true"
 >
   <!-- Mobile: full screen with safe area; Desktop: centered modal -->
-  <div class="card w-full h-full sm:h-auto sm:max-w-3xl sm:max-h-[90vh] overflow-hidden flex flex-col rounded-none sm:rounded-xl pt-[env(safe-area-inset-top)] sm:pt-0">
+  <div class="card w-full h-full sm:h-auto sm:max-w-3xl sm:max-h-[90vh] overflow-hidden flex flex-col rounded-none sm:rounded-xl pt-[env(safe-area-inset-top)] sm:pt-4">
     <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-surface-700 pb-4 shrink-0 px-4 sm:px-0 pt-2 sm:pt-0"
+      class="flex items-center justify-between border-b border-surface-700 pb-4 shrink-0 px-2"
     >
       <div>
         <h2 class="text-xl font-semibold text-surface-100">Create New Story</h2>
@@ -1880,28 +1880,29 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
         </p>
       </div>
       <button
-        class="btn-ghost rounded-lg p-2 text-surface-400 hover:text-surface-100"
+        class="btn-ghost rounded-lg p-1.5 text-surface-400 hover:text-surface-100"
         onclick={onClose}
       >
-        <X class="h-5 w-5" />
+        <X class="h-7 w-7" />
       </button>
     </div>
 
     <!-- Progress Bar -->
-    <div class="py-3 shrink-0">
+    <div class="py-3 px-2 shrink-0">
       <div class="flex gap-1">
         {#each Array(totalSteps) as _, i}
           <div
             class="h-1.5 flex-1 rounded-full transition-colors"
-            class:bg-primary-500={i < currentStep}
-            class:bg-surface-700={i >= currentStep}
+            class:bg-accent-500={i === currentStep - 1}
+            class:bg-surface-700={i < currentStep - 1}
+            class:bg-surface-500={i > currentStep - 1}
           ></div>
         {/each}
       </div>
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto py-4 min-h-0">
+    <div class="flex-1 overflow-y-auto py-4 px-2 min-h-0">
       {#if needsApiKey}
         <!-- API Key Warning -->
         <div class="flex flex-col items-center justify-center py-8 text-center">
@@ -2513,32 +2514,27 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
           {/if}
 
           {#if expandedSetting}
-            <div class="card bg-surface-900 p-4 space-y-3">
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-surface-100">
-                  {expandedSetting.name}
-                </h3>
-                <div class="flex gap-2">
-                  <button
-                    class="text-xs text-surface-400 hover:text-surface-200 flex items-center gap-1"
-                    onclick={editSetting}
-                    title="Edit the expanded description"
-                  >
-                    <PenTool class="h-3 w-3" />
-                    Edit
-                  </button>
-                  <button
-                    class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
-                    onclick={expandSettingFurther}
-                    disabled={isExpandingSetting}
-                    title="Refine using the current setting details"
-                  >
-                    <Sparkles
-                      class="h-3 w-3 {isExpandingSetting ? 'animate-pulse' : ''}"
-                    />
-                    {isExpandingSetting ? "Expanding..." : "Expand Further"}
-                  </button>
-                </div>
+            <div class="card bg-surface-900 px-4 py-3 sm:pt-2 sm:pb-3 space-y-2 sm:space-y-1">
+              <div class="flex justify-end gap-3">
+                <button
+                  class="flex items-center gap-1.5 text-xs font-medium text-surface-400 hover:text-surface-100 transition-colors"
+                  onclick={editSetting}
+                  title="Edit the expanded description"
+                >
+                  <PenTool class="h-3 w-3" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  class="flex items-center gap-1.5 text-xs font-medium text-accent-400 hover:text-accent-300 transition-colors"
+                  onclick={expandSettingFurther}
+                  disabled={isExpandingSetting}
+                  title="Refine using the current setting details"
+                >
+                  <Sparkles
+                    class="h-3 w-3 {isExpandingSetting ? 'animate-pulse' : ''}"
+                  />
+                  <span>{isExpandingSetting ? "Refining..." : "Refine"}</span>
+                </button>
               </div>
               <p class="text-sm text-surface-300 whitespace-pre-wrap">
                 {expandedSetting.description}
@@ -2616,7 +2612,7 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
             <!-- Protagonist Section -->
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <div class="px-2">
+                <div>
                   <p class="text-surface-400 mb-3">
                     {selectedMode === "adventure"
                       ? "Create your character for this adventure."
@@ -2629,11 +2625,13 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                   </h3>
                 </div>
                 <button
-                  class="btn btn-secondary btn-sm flex items-center gap-1.5 mr-2 self-end"
+                  class="btn btn-secondary btn-sm flex items-center gap-1.5 self-start sm:self-end mt-1 sm:mt-0"
                   onclick={() => (showProtagonistVaultPicker = true)}
                   title="Select a character from your vault"
                 >
-                  Use from Vault
+                  <Archive class="h-3 w-3" />
+                  <span class="sm:hidden">Vault</span>
+                  <span class="hidden sm:inline">Use from Vault</span>
                 </button>
               </div>
 
@@ -2731,19 +2729,19 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                   </div>
 
                   <div
-                    class="flex flex-wrap gap-2 pt-2 border-t border-surface-700"
+                    class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pt-2 border-t border-surface-700"
                   >
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1"
+                      class="btn btn-secondary btn-sm flex items-center justify-center gap-2"
                       onclick={useManualCharacter}
                       disabled={!manualCharacterName.trim()}
                       title="Use character as entered"
                     >
                       <User class="h-3 w-3" />
-                      Use As-Is
+                      <span>Use As-Is</span>
                     </button>
                     <button
-                      class="btn btn-primary btn-sm flex items-center gap-1"
+                      class="btn btn-primary btn-sm flex items-center justify-center gap-2"
                       onclick={() => elaborateCharacter()}
                       disabled={isElaboratingCharacter ||
                         (!manualCharacterName.trim() &&
@@ -2753,56 +2751,58 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                     >
                       {#if isElaboratingCharacter}
                         <Loader2 class="h-3 w-3 animate-spin" />
-                        Elaborating...
+                        <span>Elaborating...</span>
                       {:else}
                         <Sparkles class="h-3 w-3" />
-                        Elaborate with AI
+                        <span class="sm:hidden">Elaborate</span>
+                        <span class="hidden sm:inline">Elaborate with AI</span>
                       {/if}
                     </button>
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1"
+                      class="btn btn-secondary btn-sm flex items-center justify-center gap-2"
                       onclick={generateProtagonist}
                       disabled={isGeneratingProtagonist}
                       title="Generate a completely new character from scratch"
                     >
                       {#if isGeneratingProtagonist}
                         <RefreshCw class="h-3 w-3 animate-spin" />
-                        Generating...
+                        <span>Generating...</span>
                       {:else}
                         <RefreshCw class="h-3 w-3" />
-                        Generate New
+                        <span class="sm:hidden">Generate</span>
+                        <span class="hidden sm:inline">Generate New</span>
                       {/if}
                     </button>
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1 sm:ml-auto"
+                      class="btn btn-secondary btn-sm flex items-center justify-center gap-2 sm:ml-auto"
                       onclick={handleSaveProtagonistToVault}
                       disabled={!manualCharacterName.trim()}
                       title="Save this character to your vault for reuse"
                     >
                       <Archive class="h-3 w-3" />
                       <span class="hidden sm:inline">{savedToVaultConfirm ? "Saved!" : "Save to Vault"}</span>
-                      <span class="sm:hidden">Save</span>
+                      <span class="sm:hidden">{savedToVaultConfirm ? "Saved" : "Save"}</span>
                     </button>
                   </div>
                 </div>
               {:else if protagonist}
                 <!-- Generated/Final Character Display -->
                 <div class="card bg-surface-900 p-4 space-y-2">
-                  <div class="flex items-start justify-between">
-                    <h4 class="font-semibold text-surface-100">
+                  <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-semibold text-surface-100 truncate">
                       {protagonist.name}
                     </h4>
-                    <div class="flex gap-1">
+                    <div class="flex items-center gap-3 shrink-0">
                       <button
-                        class="text-xs text-surface-400 hover:text-surface-200 flex items-center gap-1"
+                        class="flex items-center gap-1.5 text-xs font-medium text-surface-400 hover:text-surface-100 transition-colors"
                         onclick={editCharacter}
                         title="Edit character details"
                       >
                         <PenTool class="h-3 w-3" />
-                        Edit
+                        <span>Edit</span>
                       </button>
                       <button
-                        class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1 ml-2"
+                        class="flex items-center gap-1.5 text-xs font-medium text-accent-400 hover:text-accent-300 transition-colors"
                         onclick={elaborateCharacterFurther}
                         disabled={isElaboratingCharacter}
                         title="Re-elaborate with new guidance"
@@ -2812,9 +2812,7 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                             ? 'animate-pulse'
                             : ''}"
                         />
-                        {isElaboratingCharacter
-                          ? "Elaborating..."
-                          : "Elaborate Further"}
+                        <span>{isElaboratingCharacter ? "Refining..." : "Refine"}</span>
                       </button>
                     </div>
                   </div>
@@ -2834,10 +2832,10 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                     </p>
                   {/if}
                   {#if protagonist.traits && protagonist.traits.length > 0}
-                    <div class="flex flex-wrap gap-1">
+                    <div class="flex flex-wrap gap-2">
                       {#each protagonist.traits as trait}
                         <span
-                          class="px-2 py-0.5 rounded-full bg-primary-900/50 text-xs text-primary-400"
+                          class="px-2 py-1 rounded-md bg-primary-500/20 text-xs text-primary-300 border border-primary-500/30"
                           >{trait}</span
                         >
                       {/each}
@@ -2865,15 +2863,15 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                   <p class="text-surface-400 mb-3">
                     Enter your own character details or generate one with AI
                   </p>
-                  <div class="flex justify-center gap-2">
+                  <div class="grid grid-cols-1 sm:flex sm:justify-center gap-2">
                     <button
-                      class="btn btn-secondary btn-sm"
+                      class="btn btn-secondary btn-sm justify-center"
                       onclick={() => (showManualInput = true)}
                     >
                       Enter Manually
                     </button>
                     <button
-                      class="btn btn-primary btn-sm flex items-center gap-1"
+                      class="btn btn-primary btn-sm flex items-center justify-center gap-1"
                       onclick={generateProtagonist}
                       disabled={isGeneratingProtagonist}
                     >
@@ -2899,38 +2897,39 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
 
             <!-- Supporting Characters -->
               <div class="space-y-3 pt-4 border-t border-surface-700">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <h3 class="font-medium text-surface-100">Supporting Cast</h3>
-                  <div class="flex gap-2">
+                  <div class="grid grid-cols-3 sm:flex gap-2 w-full sm:w-auto">
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1"
+                      class="btn btn-secondary btn-sm flex items-center justify-center gap-1"
                       onclick={() => (showSupportingVaultPicker = true)}
                       disabled={showSupportingCharacterForm}
                       title="Select from vault"
                     >
                       <Archive class="h-3 w-3" />
-                      Vault
+                      <span>Vault</span>
                     </button>
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1"
+                      class="btn btn-secondary btn-sm flex items-center justify-center gap-1"
                       onclick={openSupportingCharacterForm}
                       disabled={showSupportingCharacterForm}
                     >
                       <Plus class="h-3 w-3" />
-                      Add
+                      <span>Add</span>
                     </button>
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1"
+                      class="btn btn-secondary btn-sm flex items-center justify-center gap-1"
                       onclick={generateCharacters}
                       disabled={isGeneratingCharacters || !protagonist}
                       title="Generate 3 AI characters at once"
                     >
                       {#if isGeneratingCharacters}
                         <Loader2 class="h-3 w-3 animate-spin" />
-                        Generating...
+                        <span class="hidden sm:inline">Generating...</span>
                       {:else}
                         <Sparkles class="h-3 w-3" />
-                        Generate 3
+                        <span class="sm:hidden">Gen 3</span>
+                        <span class="hidden sm:inline">Generate 3</span>
                       {/if}
                     </button>
                   </div>
@@ -3026,19 +3025,19 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                     </div>
 
                     <div
-                      class="flex flex-wrap gap-2 pt-2 border-t border-surface-700"
+                      class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pt-2 border-t border-surface-700"
                     >
                       <button
-                        class="btn btn-secondary btn-sm flex items-center gap-1"
+                        class="btn btn-secondary btn-sm flex items-center justify-center gap-1 col-span-1"
                         onclick={useSupportingCharacterAsIs}
                         disabled={!supportingCharacterName.trim()}
                         title="Use character as entered"
                       >
                         <Check class="h-3 w-3" />
-                        Use As-Is
+                        <span>Use As-Is</span>
                       </button>
                       <button
-                        class="btn btn-primary btn-sm flex items-center gap-1"
+                        class="btn btn-primary btn-sm flex items-center justify-center gap-1 col-span-1"
                         onclick={elaborateSupportingCharacter}
                         disabled={isElaboratingSupportingCharacter ||
                           (!supportingCharacterName.trim() &&
@@ -3047,18 +3046,19 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                       >
                         {#if isElaboratingSupportingCharacter}
                           <Loader2 class="h-3 w-3 animate-spin" />
-                          Elaborating...
+                          <span>Elaborating...</span>
                         {:else}
                           <Sparkles class="h-3 w-3" />
-                          Elaborate with AI
+                          <span class="sm:hidden">Elaborate</span>
+                          <span class="hidden sm:inline">Elaborate with AI</span>
                         {/if}
                       </button>
                       <button
-                        class="btn btn-secondary btn-sm flex items-center gap-1"
+                        class="btn btn-secondary btn-sm flex items-center justify-center gap-1 col-span-2 sm:w-auto"
                         onclick={cancelSupportingCharacterForm}
                       >
                         <X class="h-3 w-3" />
-                        Cancel
+                        <span>Cancel</span>
                       </button>
                     </div>
                   </div>
@@ -3069,32 +3069,14 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                   <div class="space-y-2">
                     {#each supportingCharacters as char, index}
                       <div class="card bg-surface-900 p-3">
-                        <div class="flex items-start justify-between mb-1">
-                          <div class="flex items-center gap-2">
-                            <span class="font-medium text-surface-100"
-                              >{char.name}</span
-                            >
-                            <span
-                              class="text-xs px-1.5 py-0.5 rounded bg-accent-500/20 text-accent-400"
-                              >{char.role}</span
-                            >
-                          </div>
-                          <div class="flex gap-1">
-                            <button
-                              class="text-xs text-surface-400 hover:text-surface-200 flex items-center gap-1 p-1"
-                              onclick={() => editSupportingCharacter(index)}
-                              title="Edit character"
-                            >
-                              <PenTool class="h-3 w-3" />
-                            </button>
-                            <button
-                              class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 p-1"
-                              onclick={() => deleteSupportingCharacter(index)}
-                              title="Delete character"
-                            >
-                              <Trash2 class="h-3 w-3" />
-                            </button>
-                          </div>
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="font-medium text-surface-100"
+                            >{char.name}</span
+                          >
+                          <span
+                            class="text-xs px-1.5 py-0.5 rounded bg-accent-500/20 text-accent-400"
+                            >{char.role}</span
+                          >
                         </div>
                         <p class="text-sm text-surface-300">
                           {char.description}
@@ -3105,15 +3087,33 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                           </p>
                         {/if}
                         {#if char.traits && char.traits.length > 0}
-                          <div class="flex flex-wrap gap-1 mt-1">
+                          <div class="flex flex-wrap gap-2 mt-2">
                             {#each char.traits as trait}
                               <span
-                                class="px-1.5 py-0.5 rounded-full bg-surface-700 text-xs text-surface-400"
+                                class="px-2 py-1 rounded-md bg-surface-800 text-xs text-surface-300 border border-surface-700"
                                 >{trait}</span
                               >
                             {/each}
                           </div>
                         {/if}
+                        <div
+                          class="flex justify-center gap-3 mt-3 pt-2 border-t border-surface-800"
+                        >
+                          <button
+                            class="p-1.5 text-surface-400 hover:text-surface-100 hover:bg-surface-800 rounded-lg transition-colors"
+                            onclick={() => editSupportingCharacter(index)}
+                            title="Edit character"
+                          >
+                            <PenTool class="h-4 w-4" />
+                          </button>
+                          <button
+                            class="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                            onclick={() => deleteSupportingCharacter(index)}
+                            title="Delete character"
+                          >
+                            <Trash2 class="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     {/each}
                   </div>
@@ -3405,7 +3405,7 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
         </div>
       {:else if currentStep === 7}
         <!-- Step 7: Writing Style -->
-        <div class="space-y-6">
+        <div class="space-y-4">
           <p class="text-surface-400">
             Customize how your story will be written.
           </p>

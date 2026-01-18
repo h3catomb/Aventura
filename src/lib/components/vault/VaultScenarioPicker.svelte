@@ -32,7 +32,7 @@
   });
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70" role="dialog" aria-modal="true">
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
   <div class="card w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-surface-700 pb-4 shrink-0">
