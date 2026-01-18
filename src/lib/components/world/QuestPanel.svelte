@@ -1,18 +1,28 @@
 <script lang="ts">
-  import { story } from '$lib/stores/story.svelte';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { Plus, Target, CheckCircle, XCircle, Circle, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-svelte';
-  import type { StoryBeat } from '$lib/types';
+  import { story } from "$lib/stores/story.svelte";
+  import { ui } from "$lib/stores/ui.svelte";
+  import {
+    Plus,
+    Target,
+    CheckCircle,
+    XCircle,
+    Circle,
+    Pencil,
+    Trash2,
+    ChevronDown,
+    ChevronUp,
+  } from "lucide-svelte";
+  import type { StoryBeat } from "$lib/types";
 
   let showAddForm = $state(false);
-  let newTitle = $state('');
-  let newDescription = $state('');
-  let newType = $state<StoryBeat['type']>('quest');
+  let newTitle = $state("");
+  let newDescription = $state("");
+  let newType = $state<StoryBeat["type"]>("quest");
   let editingId = $state<string | null>(null);
-  let editTitle = $state('');
-  let editDescription = $state('');
-  let editType = $state<StoryBeat['type']>('quest');
-  let editStatus = $state<StoryBeat['status']>('pending');
+  let editTitle = $state("");
+  let editDescription = $state("");
+  let editType = $state<StoryBeat["type"]>("quest");
+  let editStatus = $state<StoryBeat["status"]>("pending");
   let confirmingDeleteId = $state<string | null>(null);
 
   function toggleCollapse(beatId: string) {
@@ -31,27 +41,31 @@
 
   async function addBeat() {
     if (!newTitle.trim()) return;
-    await story.addStoryBeat(newTitle.trim(), newType, newDescription.trim() || undefined);
-    newTitle = '';
-    newDescription = '';
-    newType = 'quest';
+    await story.addStoryBeat(
+      newTitle.trim(),
+      newType,
+      newDescription.trim() || undefined,
+    );
+    newTitle = "";
+    newDescription = "";
+    newType = "quest";
     showAddForm = false;
   }
 
   function startEdit(beat: StoryBeat) {
     editingId = beat.id;
     editTitle = beat.title;
-    editDescription = beat.description ?? '';
+    editDescription = beat.description ?? "";
     editType = beat.type;
     editStatus = beat.status;
   }
 
   function cancelEdit() {
     editingId = null;
-    editTitle = '';
-    editDescription = '';
-    editType = 'quest';
-    editStatus = 'pending';
+    editTitle = "";
+    editDescription = "";
+    editType = "quest";
+    editStatus = "pending";
   }
 
   async function saveEdit(beat: StoryBeat) {
@@ -73,32 +87,48 @@
 
   function getStatusIcon(status: string) {
     switch (status) {
-      case 'pending': return Circle;
-      case 'active': return Target;
-      case 'completed': return CheckCircle;
-      case 'failed': return XCircle;
-      default: return Circle;
+      case "pending":
+        return Circle;
+      case "active":
+        return Target;
+      case "completed":
+        return CheckCircle;
+      case "failed":
+        return XCircle;
+      default:
+        return Circle;
     }
   }
 
   function getStatusColor(status: string) {
     switch (status) {
-      case 'pending': return 'text-surface-500';
-      case 'active': return 'text-amber-400';
-      case 'completed': return 'text-green-400';
-      case 'failed': return 'text-red-400';
-      default: return 'text-surface-400';
+      case "pending":
+        return "text-surface-500";
+      case "active":
+        return "text-amber-400";
+      case "completed":
+        return "text-green-400";
+      case "failed":
+        return "text-red-400";
+      default:
+        return "text-surface-400";
     }
   }
 
   function getTypeLabel(type: string) {
     switch (type) {
-      case 'milestone': return 'Milestone';
-      case 'quest': return 'Quest';
-      case 'revelation': return 'Revelation';
-      case 'event': return 'Event';
-      case 'plot_point': return 'Plot Point';
-      default: return type;
+      case "milestone":
+        return "Milestone";
+      case "quest":
+        return "Quest";
+      case "revelation":
+        return "Revelation";
+      case "event":
+        return "Event";
+      case "plot_point":
+        return "Plot Point";
+      default:
+        return type;
     }
   }
 </script>
@@ -107,8 +137,8 @@
   <div class="flex items-center justify-between">
     <h3 class="font-medium text-surface-200">Story Beats</h3>
     <button
-      class="btn-ghost rounded p-1"
-      onclick={() => showAddForm = !showAddForm}
+      class="sm:btn-ghost rounded p-1"
+      onclick={() => (showAddForm = !showAddForm)}
       title="Add story beat"
     >
       <Plus class="h-4 w-4" />
@@ -137,10 +167,17 @@
         rows="2"
       ></textarea>
       <div class="flex justify-end gap-2">
-        <button class="btn btn-secondary text-xs" onclick={() => showAddForm = false}>
+        <button
+          class="btn btn-secondary text-xs"
+          onclick={() => (showAddForm = false)}
+        >
           Cancel
         </button>
-        <button class="btn btn-primary text-xs" onclick={addBeat} disabled={!newTitle.trim()}>
+        <button
+          class="btn btn-primary text-xs"
+          onclick={addBeat}
+          disabled={!newTitle.trim()}
+        >
           Add
         </button>
       </div>
@@ -165,8 +202,12 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{beat.title}</span>
-                  <span class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                  <span class="break-words font-medium text-surface-100"
+                    >{beat.title}</span
+                  >
+                  <span
+                    class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400"
+                  >
                     {getTypeLabel(beat.type)}
                   </span>
                 </div>
@@ -176,38 +217,46 @@
 
           <!-- Section 2: Description -->
           {#if beat.description}
-            <div class="mt-3 space-y-2 rounded-md bg-surface-800/40" class:max-h-24={isCollapsed && needsCollapse} class:overflow-hidden={isCollapsed && needsCollapse}>
-              <p class="break-words text-sm text-surface-400">{beat.description}</p>
+            <div
+              class="mt-2 space-y-2 rounded-md bg-surface-800/40"
+              class:max-h-24={isCollapsed && needsCollapse}
+              class:overflow-hidden={isCollapsed && needsCollapse}
+            >
+              <p class="break-words text-sm text-surface-400">
+                {beat.description}
+              </p>
             </div>
           {/if}
 
           <!-- Action Buttons -->
-          <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
-            <div class="flex items-center gap-1">
+          <div
+            class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3"
+          >
+            <div class="flex items-center gap-3">
               {#if confirmingDeleteId === beat.id}
                 <button
-                  class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
+                  class="sm:btn-ghost rounded text-xs text-red-400 hover:bg-red-500/20"
                   onclick={() => deleteBeat(beat)}
                 >
                   Confirm
                 </button>
                 <button
-                  class="btn-ghost rounded px-2 py-1 text-xs"
-                  onclick={() => confirmingDeleteId = null}
+                  class="sm:btn-ghost roundedtext-xs"
+                  onclick={() => (confirmingDeleteId = null)}
                 >
                   Cancel
                 </button>
               {:else}
                 <button
-                  class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                  class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                   onclick={() => startEdit(beat)}
                   title="Edit story beat"
                 >
                   <Pencil class="h-3.5 w-3.5" />
                 </button>
                 <button
-                  class="btn-ghost rounded p-1.5 text-surface-500 hover:text-red-400 sm:p-1"
-                  onclick={() => confirmingDeleteId = beat.id}
+                  class="sm:btn-ghost rounded text-surface-500 hover:text-red-400"
+                  onclick={() => (confirmingDeleteId = beat.id)}
                   title="Delete story beat"
                 >
                   <Trash2 class="h-3.5 w-3.5" />
@@ -216,9 +265,9 @@
             </div>
             {#if needsCollapse}
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => toggleCollapse(beat.id)}
-                title={isCollapsed ? 'Expand' : 'Collapse'}
+                title={isCollapsed ? "Expand" : "Collapse"}
               >
                 {#if isCollapsed}
                   <ChevronDown class="h-3.5 w-3.5" />
@@ -275,12 +324,12 @@
   {/if}
 
   {#if story.storyBeats.length === 0}
-    <p class="py-4 text-center text-sm text-surface-500">
-      No story beats yet
-    </p>
+    <p class="py-4 text-center text-sm text-surface-500">No story beats yet</p>
   {:else}
     <!-- Completed/Failed -->
-    {@const completedBeats = story.storyBeats.filter(b => b.status === 'completed' || b.status === 'failed')}
+    {@const completedBeats = story.storyBeats.filter(
+      (b) => b.status === "completed" || b.status === "failed",
+    )}
     {#if completedBeats.length > 0}
       <div class="space-y-2">
         <h4 class="text-sm font-medium text-surface-400">History</h4>
@@ -302,38 +351,46 @@
 
             <!-- Section 2: Description -->
             {#if beat.description}
-              <div class="mt-3 space-y-2 rounded-md bg-surface-800/40" class:max-h-24={isCollapsed && needsCollapse} class:overflow-hidden={isCollapsed && needsCollapse}>
-                <p class="break-words text-sm text-surface-400">{beat.description}</p>
+              <div
+                class="mt-2 space-y-2 rounded-md bg-surface-800/40"
+                class:max-h-24={isCollapsed && needsCollapse}
+                class:overflow-hidden={isCollapsed && needsCollapse}
+              >
+                <p class="break-words text-sm text-surface-400">
+                  {beat.description}
+                </p>
               </div>
             {/if}
 
             <!-- Action Buttons -->
-            <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
-              <div class="flex items-center gap-1">
+            <div
+              class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3"
+            >
+              <div class="flex items-center gap-3">
                 {#if confirmingDeleteId === beat.id}
                   <button
-                    class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
+                    class="sm:btn-ghost rounded text-xs text-red-400 hover:bg-red-500/20"
                     onclick={() => deleteBeat(beat)}
                   >
                     Confirm
                   </button>
                   <button
-                    class="btn-ghost rounded px-2 py-1 text-xs"
-                    onclick={() => confirmingDeleteId = null}
+                    class="sm:btn-ghost rounded text-xs"
+                    onclick={() => (confirmingDeleteId = null)}
                   >
                     Cancel
                   </button>
                 {:else}
                   <button
-                    class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                    class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                     onclick={() => startEdit(beat)}
                     title="Edit story beat"
                   >
                     <Pencil class="h-3.5 w-3.5" />
                   </button>
                   <button
-                    class="btn-ghost rounded p-1.5 text-surface-500 hover:text-red-400 sm:p-1"
-                    onclick={() => confirmingDeleteId = beat.id}
+                    class="sm:btn-ghost rounded text-surface-500 hover:text-red-400"
+                    onclick={() => (confirmingDeleteId = beat.id)}
                     title="Delete story beat"
                   >
                     <Trash2 class="h-3.5 w-3.5" />
@@ -342,9 +399,9 @@
               </div>
               {#if needsCollapse}
                 <button
-                  class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                  class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                   onclick={() => toggleCollapse(beat.id)}
-                  title={isCollapsed ? 'Expand' : 'Collapse'}
+                  title={isCollapsed ? "Expand" : "Collapse"}
                 >
                   {#if isCollapsed}
                     <ChevronDown class="h-3.5 w-3.5" />
@@ -382,7 +439,10 @@
                   rows="2"
                 ></textarea>
                 <div class="flex justify-end gap-2">
-                  <button class="btn btn-secondary text-xs" onclick={cancelEdit}>
+                  <button
+                    class="btn btn-secondary text-xs"
+                    onclick={cancelEdit}
+                  >
                     Cancel
                   </button>
                   <button

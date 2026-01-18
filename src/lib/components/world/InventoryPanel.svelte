@@ -1,23 +1,35 @@
 <script lang="ts">
-  import { story } from '$lib/stores/story.svelte';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { Plus, Package, Shield, Pencil, Trash2, ArrowDown, ArrowUp, MapPin, ChevronDown, ChevronUp } from 'lucide-svelte';
-  import type { Item } from '$lib/types';
+  import { story } from "$lib/stores/story.svelte";
+  import { ui } from "$lib/stores/ui.svelte";
+  import {
+    Plus,
+    Package,
+    Shield,
+    Pencil,
+    Trash2,
+    ArrowUp,
+    MapPin,
+    ChevronDown,
+    ChevronUp,
+  } from "lucide-svelte";
+  import type { Item } from "$lib/types";
 
   let showAddForm = $state(false);
-  let newName = $state('');
-  let newDescription = $state('');
+  let newName = $state("");
+  let newDescription = $state("");
   let newQuantity = $state(1);
   let editingId = $state<string | null>(null);
-  let editName = $state('');
-  let editDescription = $state('');
+  let editName = $state("");
+  let editDescription = $state("");
   let editQuantity = $state(1);
   let editEquipped = $state(false);
   let confirmingDeleteId = $state<string | null>(null);
   let droppingItemId = $state<string | null>(null);
-  let dropLocationId = $state<string>('');
+  let dropLocationId = $state<string>("");
 
-  const worldItems = $derived(story.items.filter(item => item.location !== 'inventory'));
+  const worldItems = $derived(
+    story.items.filter((item) => item.location !== "inventory"),
+  );
 
   function toggleCollapse(itemId: string) {
     const isCollapsed = ui.isEntityCollapsed(itemId);
@@ -35,9 +47,13 @@
 
   async function addItem() {
     if (!newName.trim()) return;
-    await story.addItem(newName.trim(), newDescription.trim() || undefined, newQuantity);
-    newName = '';
-    newDescription = '';
+    await story.addItem(
+      newName.trim(),
+      newDescription.trim() || undefined,
+      newQuantity,
+    );
+    newName = "";
+    newDescription = "";
     newQuantity = 1;
     showAddForm = false;
   }
@@ -45,15 +61,15 @@
   function startEdit(item: Item) {
     editingId = item.id;
     editName = item.name;
-    editDescription = item.description ?? '';
+    editDescription = item.description ?? "";
     editQuantity = item.quantity;
     editEquipped = item.equipped;
   }
 
   function cancelEdit() {
     editingId = null;
-    editName = '';
-    editDescription = '';
+    editName = "";
+    editDescription = "";
     editQuantity = 1;
     editEquipped = false;
   }
@@ -67,7 +83,7 @@
       name,
       description: editDescription.trim() || null,
       quantity,
-      equipped: item.location === 'inventory' ? editEquipped : false,
+      equipped: item.location === "inventory" ? editEquipped : false,
     });
 
     cancelEdit();
@@ -80,13 +96,19 @@
 
   function beginDrop(item: Item) {
     droppingItemId = item.id;
-    const preferredLocation = story.locations.find(loc => loc.id === item.location)?.id;
-    dropLocationId = preferredLocation || story.currentLocation?.id || story.locations[0]?.id || '';
+    const preferredLocation = story.locations.find(
+      (loc) => loc.id === item.location,
+    )?.id;
+    dropLocationId =
+      preferredLocation ||
+      story.currentLocation?.id ||
+      story.locations[0]?.id ||
+      "";
   }
 
   function cancelDrop() {
     droppingItemId = null;
-    dropLocationId = '';
+    dropLocationId = "";
   }
 
   async function dropItem(item: Item) {
@@ -100,7 +122,7 @@
 
   async function pickUpItem(item: Item) {
     await story.updateItem(item.id, {
-      location: 'inventory',
+      location: "inventory",
     });
   }
 
@@ -113,9 +135,9 @@
   }
 
   function getLocationLabel(locationId: string) {
-    if (locationId === 'inventory') return 'Inventory';
-    const location = story.locations.find(loc => loc.id === locationId);
-    return location?.name || 'Unknown location';
+    if (locationId === "inventory") return "Inventory";
+    const location = story.locations.find((loc) => loc.id === locationId);
+    return location?.name || "Unknown location";
   }
 </script>
 
@@ -123,8 +145,8 @@
   <div class="flex items-center justify-between">
     <h3 class="font-medium text-surface-200">Inventory</h3>
     <button
-      class="btn-ghost rounded p-1"
-      onclick={() => showAddForm = !showAddForm}
+      class="sm:btn-ghost rounded p-1"
+      onclick={() => (showAddForm = !showAddForm)}
       title="Add item"
     >
       <Plus class="h-4 w-4" />
@@ -155,10 +177,17 @@
         rows="2"
       ></textarea>
       <div class="flex justify-end gap-2">
-        <button class="btn btn-secondary text-xs" onclick={() => showAddForm = false}>
+        <button
+          class="btn btn-secondary text-xs"
+          onclick={() => (showAddForm = false)}
+        >
           Cancel
         </button>
-        <button class="btn btn-primary text-xs" onclick={addItem} disabled={!newName.trim()}>
+        <button
+          class="btn btn-primary text-xs"
+          onclick={addItem}
+          disabled={!newName.trim()}
+        >
           Add
         </button>
       </div>
@@ -180,9 +209,13 @@
               <Shield class="h-4 w-4 text-accent-400 flex-shrink-0" />
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{item.name}</span>
+                  <span class="break-words font-medium text-surface-100"
+                    >{item.name}</span
+                  >
                   {#if item.quantity > 1}
-                    <span class="text-sm text-surface-400">x{item.quantity}</span>
+                    <span class="text-sm text-surface-400"
+                      >x{item.quantity}</span
+                    >
                   {/if}
                 </div>
               </div>
@@ -191,49 +224,59 @@
 
           <!-- Section 2: Description -->
           {#if item.description}
-            <div class="mt-3 space-y-2 rounded-md bg-surface-800/40" class:max-h-24={isCollapsed && needsCollapse} class:overflow-hidden={isCollapsed && needsCollapse}>
-              <p class="break-words text-sm text-surface-400">{item.description}</p>
+            <div
+              class="mt-2 space-y-2 rounded-md bg-surface-800/40"
+              class:max-h-24={isCollapsed && needsCollapse}
+              class:overflow-hidden={isCollapsed && needsCollapse}
+            >
+              <p class="break-words text-sm text-surface-400">
+                {item.description}
+              </p>
             </div>
           {/if}
 
           <!-- Action Buttons -->
-          <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
-            <div class="flex items-center gap-1">
+          <div
+            class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3"
+          >
+            <div class="flex items-center gap-3">
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => startEdit(item)}
                 title="Edit item"
               >
                 <Pencil class="h-3.5 w-3.5" />
               </button>
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
-                onclick={() => beginDrop(item)}
-                title="Drop item"
-              >
-                <ArrowDown class="h-3.5 w-3.5" />
-              </button>
-              <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-red-400 sm:p-1"
-                onclick={() => confirmingDeleteId = item.id}
+                class="sm:btn-ghost rounded text-surface-500 hover:text-red-400"
+                onclick={() => (confirmingDeleteId = item.id)}
                 title="Remove item"
               >
                 <Trash2 class="h-3.5 w-3.5" />
               </button>
             </div>
-            {#if needsCollapse}
+            <div class="flex items-center gap-1">
+              {#if needsCollapse}
+                <button
+                  class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
+                  onclick={() => toggleCollapse(item.id)}
+                  title={isCollapsed ? "Expand" : "Collapse"}
+                >
+                  {#if isCollapsed}
+                    <ChevronDown class="h-3.5 w-3.5" />
+                  {:else}
+                    <ChevronUp class="h-3.5 w-3.5" />
+                  {/if}
+                </button>
+              {/if}
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
-                onclick={() => toggleCollapse(item.id)}
-                title={isCollapsed ? 'Expand' : 'Collapse'}
+                class="sm:btn-ghost rounded text-xs text-accent-400 hover:text-accent-300"
+                onclick={() => beginDrop(item)}
+                title="Drop item"
               >
-                {#if isCollapsed}
-                  <ChevronDown class="h-3.5 w-3.5" />
-                {:else}
-                  <ChevronUp class="h-3.5 w-3.5" />
-                {/if}
+                Drop
               </button>
-            {/if}
+            </div>
           </div>
           {#if editingId === item.id}
             <div class="mt-3 space-y-2">
@@ -281,7 +324,11 @@
                 <MapPin class="h-3.5 w-3.5" />
                 <span>Drop at</span>
               </div>
-              <select bind:value={dropLocationId} class="input text-sm" disabled={story.locations.length === 0}>
+              <select
+                bind:value={dropLocationId}
+                class="input text-sm"
+                disabled={story.locations.length === 0}
+              >
                 {#if story.locations.length === 0}
                   <option value="">No locations available</option>
                 {:else}
@@ -307,12 +354,15 @@
           {#if confirmingDeleteId === item.id}
             <div class="mt-3 flex justify-end gap-2">
               <button
-                class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
+                class="sm:btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
                 onclick={() => deleteItem(item)}
               >
                 Confirm
               </button>
-              <button class="btn-ghost rounded px-2 py-1 text-xs" onclick={() => confirmingDeleteId = null}>
+              <button
+                class="sm:btn-ghost rounded px-2 py-1 text-xs"
+                onclick={() => (confirmingDeleteId = null)}
+              >
                 Cancel
               </button>
             </div>
@@ -322,16 +372,14 @@
     </div>
   {/if}
 
-  {#if story.inventoryItems.filter(item => !item.equipped).length === 0 && story.equippedItems.length === 0}
-    <p class="py-4 text-center text-sm text-surface-500">
-      No items yet
-    </p>
-  {:else if story.inventoryItems.filter(item => !item.equipped).length > 0}
+  {#if story.inventoryItems.filter((item) => !item.equipped).length === 0 && story.equippedItems.length === 0}
+    <p class="py-4 text-center text-sm text-surface-500">No items yet</p>
+  {:else if story.inventoryItems.filter((item) => !item.equipped).length > 0}
     <div class="space-y-2">
       {#if story.equippedItems.length > 0}
         <h4 class="text-sm font-medium text-surface-400">Inventory</h4>
       {/if}
-      {#each story.inventoryItems.filter(item => !item.equipped) as item (item.id)}
+      {#each story.inventoryItems.filter((item) => !item.equipped) as item (item.id)}
         {@const isCollapsed = ui.isEntityCollapsed(item.id)}
         {@const sectionLineCount = getSectionLineCount(item)}
         {@const needsCollapse = sectionLineCount > 4}
@@ -344,9 +392,13 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{item.name}</span>
+                  <span class="break-words font-medium text-surface-100"
+                    >{item.name}</span
+                  >
                   {#if item.quantity > 1}
-                    <span class="text-sm text-surface-400">x{item.quantity}</span>
+                    <span class="text-sm text-surface-400"
+                      >x{item.quantity}</span
+                    >
                   {/if}
                 </div>
               </div>
@@ -355,49 +407,59 @@
 
           <!-- Section 2: Description -->
           {#if item.description}
-            <div class="mt-3 space-y-2 rounded-md bg-surface-800/40" class:max-h-24={isCollapsed && needsCollapse} class:overflow-hidden={isCollapsed && needsCollapse}>
-              <p class="break-words text-sm text-surface-400">{item.description}</p>
+            <div
+              class="mt-2 space-y-2 rounded-md bg-surface-800/40"
+              class:max-h-24={isCollapsed && needsCollapse}
+              class:overflow-hidden={isCollapsed && needsCollapse}
+            >
+              <p class="break-words text-sm text-surface-400">
+                {item.description}
+              </p>
             </div>
           {/if}
 
           <!-- Action Buttons -->
-          <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
-            <div class="flex items-center gap-1">
+          <div
+            class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3"
+          >
+            <div class="flex items-center gap-3">
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => startEdit(item)}
                 title="Edit item"
               >
                 <Pencil class="h-3.5 w-3.5" />
               </button>
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
-                onclick={() => beginDrop(item)}
-                title="Drop item"
-              >
-                <ArrowDown class="h-3.5 w-3.5" />
-              </button>
-              <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-red-400 sm:p-1"
-                onclick={() => confirmingDeleteId = item.id}
+                class="sm:btn-ghost rounded text-surface-500 hover:text-red-400"
+                onclick={() => (confirmingDeleteId = item.id)}
                 title="Remove item"
               >
                 <Trash2 class="h-3.5 w-3.5" />
               </button>
             </div>
-            {#if needsCollapse}
+            <div class="flex items-center gap-1">
+              {#if needsCollapse}
+                <button
+                  class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
+                  onclick={() => toggleCollapse(item.id)}
+                  title={isCollapsed ? "Expand" : "Collapse"}
+                >
+                  {#if isCollapsed}
+                    <ChevronDown class="h-3.5 w-3.5" />
+                  {:else}
+                    <ChevronUp class="h-3.5 w-3.5" />
+                  {/if}
+                </button>
+              {/if}
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
-                onclick={() => toggleCollapse(item.id)}
-                title={isCollapsed ? 'Expand' : 'Collapse'}
+                class="sm:btn-ghost rounded text-xs text-accent-400 hover:text-accent-300"
+                onclick={() => beginDrop(item)}
+                title="Drop item"
               >
-                {#if isCollapsed}
-                  <ChevronDown class="h-3.5 w-3.5" />
-                {:else}
-                  <ChevronUp class="h-3.5 w-3.5" />
-                {/if}
+                Drop
               </button>
-            {/if}
+            </div>
           </div>
           {#if editingId === item.id}
             <div class="mt-3 space-y-2">
@@ -445,7 +507,11 @@
                 <MapPin class="h-3.5 w-3.5" />
                 <span>Drop at</span>
               </div>
-              <select bind:value={dropLocationId} class="input text-sm" disabled={story.locations.length === 0}>
+              <select
+                bind:value={dropLocationId}
+                class="input text-sm"
+                disabled={story.locations.length === 0}
+              >
                 {#if story.locations.length === 0}
                   <option value="">No locations available</option>
                 {:else}
@@ -471,12 +537,15 @@
           {#if confirmingDeleteId === item.id}
             <div class="mt-3 flex justify-end gap-2">
               <button
-                class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
+                class="sm:btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
                 onclick={() => deleteItem(item)}
               >
                 Confirm
               </button>
-              <button class="btn-ghost rounded px-2 py-1 text-xs" onclick={() => confirmingDeleteId = null}>
+              <button
+                class="sm:btn-ghost rounded px-2 py-1 text-xs"
+                onclick={() => (confirmingDeleteId = null)}
+              >
                 Cancel
               </button>
             </div>
@@ -502,50 +571,64 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{item.name}</span>
+                  <span class="break-words font-medium text-surface-100"
+                    >{item.name}</span
+                  >
                   {#if item.quantity > 1}
-                    <span class="text-sm text-surface-400">x{item.quantity}</span>
+                    <span class="text-sm text-surface-400"
+                      >x{item.quantity}</span
+                    >
                   {/if}
                 </div>
-                <p class="mt-1 break-words text-xs text-surface-500">At {getLocationLabel(item.location)}</p>
+                <p class="mt-1 break-words text-xs text-surface-500">
+                  At {getLocationLabel(item.location)}
+                </p>
               </div>
             </div>
           </div>
 
           <!-- Section 2: Description -->
           {#if item.description}
-            <div class="mt-3 space-y-2 rounded-md bg-surface-800/40" class:max-h-24={isCollapsed && needsCollapse} class:overflow-hidden={isCollapsed && needsCollapse}>
-              <p class="break-words text-sm text-surface-400">{item.description}</p>
+            <div
+              class="mt-2 space-y-2 rounded-md bg-surface-800/40"
+              class:max-h-24={isCollapsed && needsCollapse}
+              class:overflow-hidden={isCollapsed && needsCollapse}
+            >
+              <p class="break-words text-sm text-surface-400">
+                {item.description}
+              </p>
             </div>
           {/if}
 
           <!-- Action Buttons -->
-          <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
-            <div class="flex items-center gap-1">
+          <div
+            class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3"
+          >
+            <div class="flex items-center gap-3">
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => startEdit(item)}
                 title="Edit item"
               >
                 <Pencil class="h-3.5 w-3.5" />
               </button>
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => pickUpItem(item)}
                 title="Pick up item"
               >
                 <ArrowUp class="h-3.5 w-3.5" />
               </button>
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => beginDrop(item)}
                 title="Move item"
               >
                 <MapPin class="h-3.5 w-3.5" />
               </button>
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-red-400 sm:p-1"
-                onclick={() => confirmingDeleteId = item.id}
+                class="sm:btn-ghost rounded text-surface-500 hover:text-red-400"
+                onclick={() => (confirmingDeleteId = item.id)}
                 title="Remove item"
               >
                 <Trash2 class="h-3.5 w-3.5" />
@@ -553,9 +636,9 @@
             </div>
             {#if needsCollapse}
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="sm:btn-ghost rounded text-surface-500 hover:text-surface-200"
                 onclick={() => toggleCollapse(item.id)}
-                title={isCollapsed ? 'Expand' : 'Collapse'}
+                title={isCollapsed ? "Expand" : "Collapse"}
               >
                 {#if isCollapsed}
                   <ChevronDown class="h-3.5 w-3.5" />
@@ -611,7 +694,11 @@
                 <MapPin class="h-3.5 w-3.5" />
                 <span>Move to</span>
               </div>
-              <select bind:value={dropLocationId} class="input text-sm" disabled={story.locations.length === 0}>
+              <select
+                bind:value={dropLocationId}
+                class="input text-sm"
+                disabled={story.locations.length === 0}
+              >
                 {#if story.locations.length === 0}
                   <option value="">No locations available</option>
                 {:else}
@@ -637,12 +724,15 @@
           {#if confirmingDeleteId === item.id}
             <div class="mt-3 flex justify-end gap-2">
               <button
-                class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
+                class="sm:btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
                 onclick={() => deleteItem(item)}
               >
                 Confirm
               </button>
-              <button class="btn-ghost rounded px-2 py-1 text-xs" onclick={() => confirmingDeleteId = null}>
+              <button
+                class="sm:btn-ghost rounded px-2 py-1 text-xs"
+                onclick={() => (confirmingDeleteId = null)}
+              >
                 Cancel
               </button>
             </div>

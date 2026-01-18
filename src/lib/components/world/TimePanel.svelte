@@ -1,22 +1,12 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
-  import { Clock, Pencil, Check, X, RotateCcw } from 'lucide-svelte';
+  import { Pencil, RotateCcw } from 'lucide-svelte';
 
   let isEditing = $state(false);
   let editYears = $state(0);
   let editDays = $state(0);
   let editHours = $state(0);
   let editMinutes = $state(0);
-
-  // Format the time display
-  function formatTime(years: number, days: number, hours: number, minutes: number): string {
-    const parts: string[] = [];
-    if (years > 0) parts.push(`${years} year${years !== 1 ? 's' : ''}`);
-    if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-    if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
-    if (minutes > 0) parts.push(`${minutes} min.`);
-    return parts.length > 0 ? parts.join(', ') : 'No time elapsed';
-  }
 
   function startEdit() {
     const time = story.timeTracker;
@@ -59,14 +49,14 @@
     {#if !isEditing}
       <div class="flex items-center gap-1">
         <button
-          class="btn-ghost rounded p-1"
+          class="sm:btn-ghost rounded p-1"
           onclick={startEdit}
           title="Edit time"
         >
           <Pencil class="h-4 w-4" />
         </button>
         <button
-          class="btn-ghost rounded p-1"
+          class="sm:btn-ghost rounded p-1"
           onclick={resetTime}
           title="Reset time"
         >
@@ -133,19 +123,8 @@
     </div>
   {:else}
     <div class="card p-4">
-      <div class="flex items-center gap-3">
-        <div class="rounded-full bg-surface-700 p-2">
-          <Clock class="h-5 w-5 text-accent-400" />
-        </div>
-        <div class="flex-1">
-          <div class="text-sm text-surface-200">
-            {formatTime(story.timeTracker.years, story.timeTracker.days, story.timeTracker.hours, story.timeTracker.minutes)}
-          </div>
-        </div>
-      </div>
-
       <!-- Detailed time display -->
-      <div class="mt-4 grid grid-cols-4 gap-2 text-center">
+      <div class="grid grid-cols-4 gap-2 text-center">
         <div class="rounded bg-surface-700/50 p-2">
           <div class="text-lg font-medium text-surface-100">{story.timeTracker.years}</div>
           <div class="text-xs text-surface-500">Years</div>

@@ -1,28 +1,43 @@
 <script lang="ts">
-  import { story } from '$lib/stores/story.svelte';
-  import { settings } from '$lib/stores/settings.svelte';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { characterVault } from '$lib/stores/characterVault.svelte';
-  import { Plus, User, Skull, UserX, Pencil, Trash2, Star, ImageUp, Wand2, X, Loader2, ChevronDown, ChevronUp, Archive } from 'lucide-svelte';
-  import type { Character } from '$lib/types';
-  import { NanoGPTImageProvider } from '$lib/services/ai/nanoGPTImageProvider';
-  import { promptService } from '$lib/services/prompts';
-  import { normalizeImageDataUrl } from '$lib/utils/image';
+  import { story } from "$lib/stores/story.svelte";
+  import { settings } from "$lib/stores/settings.svelte";
+  import { ui } from "$lib/stores/ui.svelte";
+  import { characterVault } from "$lib/stores/characterVault.svelte";
+  import {
+    Plus,
+    User,
+    Skull,
+    UserX,
+    Pencil,
+    Trash2,
+    Star,
+    ImageUp,
+    Wand2,
+    X,
+    Loader2,
+    ChevronDown,
+    Archive,
+    UserPlus,
+  } from "lucide-svelte";
+  import type { Character } from "$lib/types";
+  import { NanoGPTImageProvider } from "$lib/services/ai/nanoGPTImageProvider";
+  import { promptService } from "$lib/services/prompts";
+  import { normalizeImageDataUrl } from "$lib/utils/image";
 
   let showAddForm = $state(false);
-  let newName = $state('');
-  let newDescription = $state('');
-  let newRelationship = $state('');
+  let newName = $state("");
+  let newDescription = $state("");
+  let newRelationship = $state("");
   let editingId = $state<string | null>(null);
-  let editName = $state('');
-  let editDescription = $state('');
-  let editRelationship = $state('');
-  let editStatus = $state<Character['status']>('active');
-  let editTraits = $state('');
-  let editVisualDescriptors = $state('');
+  let editName = $state("");
+  let editDescription = $state("");
+  let editRelationship = $state("");
+  let editStatus = $state<Character["status"]>("active");
+  let editTraits = $state("");
+  let editVisualDescriptors = $state("");
   let confirmingDeleteId = $state<string | null>(null);
   let pendingProtagonistId = $state<string | null>(null);
-  let previousRelationshipLabel = $state('');
+  let previousRelationshipLabel = $state("");
   let swapError = $state<string | null>(null);
 
   // Portrait state
@@ -32,16 +47,22 @@
   let editPortrait = $state<string | null>(null);
   let expandedPortrait = $state<{ src: string; name: string } | null>(null);
   let savedToVaultId = $state<string | null>(null);
-  const currentProtagonistName = $derived.by(() => (
-    story.characters.find(c => c.relationship === 'self')?.name ?? 'current'
-  ));
+  const currentProtagonistName = $derived.by(
+    () =>
+      story.characters.find((c) => c.relationship === "self")?.name ??
+      "current",
+  );
 
   async function addCharacter() {
     if (!newName.trim()) return;
-    await story.addCharacter(newName.trim(), newDescription.trim() || undefined, newRelationship.trim() || undefined);
-    newName = '';
-    newDescription = '';
-    newRelationship = '';
+    await story.addCharacter(
+      newName.trim(),
+      newDescription.trim() || undefined,
+      newRelationship.trim() || undefined,
+    );
+    newName = "";
+    newDescription = "";
+    newRelationship = "";
     showAddForm = false;
   }
 
@@ -53,37 +74,37 @@
       await characterVault.load();
     }
 
-    const isProtagonist = character.relationship === 'self';
+    const isProtagonist = character.relationship === "self";
     await characterVault.saveFromStory(
       character,
-      isProtagonist ? 'protagonist' : 'supporting',
-      story.currentStory.id
+      isProtagonist ? "protagonist" : "supporting",
+      story.currentStory.id,
     );
 
     savedToVaultId = character.id;
-    setTimeout(() => savedToVaultId = null, 2000);
+    setTimeout(() => (savedToVaultId = null), 2000);
   }
 
   function startEdit(character: Character) {
     editingId = character.id;
     editName = character.name;
-    editDescription = character.description ?? '';
-    editRelationship = character.relationship ?? '';
+    editDescription = character.description ?? "";
+    editRelationship = character.relationship ?? "";
     editStatus = character.status;
-    editTraits = character.traits.join(', ');
-    editVisualDescriptors = (character.visualDescriptors ?? []).join(', ');
+    editTraits = character.traits.join(", ");
+    editVisualDescriptors = (character.visualDescriptors ?? []).join(", ");
     editPortrait = character.portrait;
     portraitError = null;
   }
 
   function cancelEdit() {
     editingId = null;
-    editName = '';
-    editDescription = '';
-    editRelationship = '';
-    editTraits = '';
-    editVisualDescriptors = '';
-    editStatus = 'active';
+    editName = "";
+    editDescription = "";
+    editRelationship = "";
+    editTraits = "";
+    editVisualDescriptors = "";
+    editStatus = "active";
     editPortrait = null;
     portraitError = null;
   }
@@ -94,18 +115,19 @@
 
     const relationship = editRelationship.trim();
     const traits = editTraits
-      .split(',')
-      .map(trait => trait.trim())
+      .split(",")
+      .map((trait) => trait.trim())
       .filter(Boolean);
     const visualDescriptors = editVisualDescriptors
-      .split(',')
-      .map(desc => desc.trim())
+      .split(",")
+      .map((desc) => desc.trim())
       .filter(Boolean);
 
     await story.updateCharacter(character.id, {
       name,
       description: editDescription.trim() || null,
-      relationship: character.relationship === 'self' ? 'self' : (relationship || null),
+      relationship:
+        character.relationship === "self" ? "self" : relationship || null,
       status: editStatus,
       traits,
       visualDescriptors,
@@ -122,13 +144,13 @@
 
   function beginSwap(character: Character) {
     pendingProtagonistId = character.id;
-    previousRelationshipLabel = '';
+    previousRelationshipLabel = "";
     swapError = null;
   }
 
   function cancelSwap() {
     pendingProtagonistId = null;
-    previousRelationshipLabel = '';
+    previousRelationshipLabel = "";
     swapError = null;
   }
 
@@ -136,32 +158,54 @@
     swapError = null;
     try {
       const label = previousRelationshipLabel.trim();
-      if (!label || label.toLowerCase() === 'self') {
-        swapError = 'Enter a custom label for the previous protagonist.';
+      if (!label || label.toLowerCase() === "self") {
+        swapError = "Enter a custom label for the previous protagonist.";
         return;
       }
       await story.setProtagonist(character.id, label);
       cancelSwap();
     } catch (error) {
-      swapError = error instanceof Error ? error.message : 'Failed to swap protagonists.';
+      swapError =
+        error instanceof Error ? error.message : "Failed to swap protagonists.";
     }
   }
 
   function getStatusIcon(status: string) {
     switch (status) {
-      case 'active': return User;
-      case 'inactive': return UserX;
-      case 'deceased': return Skull;
-      default: return User;
+      case "active":
+        return User;
+      case "inactive":
+        return UserX;
+      case "deceased":
+        return Skull;
+      default:
+        return User;
     }
   }
 
   function getStatusColor(status: string) {
     switch (status) {
-      case 'active': return 'text-green-400';
-      case 'inactive': return 'text-surface-500';
-      case 'deceased': return 'text-red-400';
-      default: return 'text-surface-400';
+      case "active":
+        return "text-green-400";
+      case "inactive":
+        return "text-surface-500";
+      case "deceased":
+        return "text-red-400";
+      default:
+        return "text-surface-400";
+    }
+  }
+
+  function getStatusBgColor(status: string) {
+    switch (status) {
+      case "active":
+        return "bg-green-500/20 ring-green-500/30";
+      case "inactive":
+        return "bg-surface-700 ring-surface-600";
+      case "deceased":
+        return "bg-red-500/20 ring-red-500/30";
+      default:
+        return "bg-surface-700 ring-surface-600";
     }
   }
 
@@ -176,13 +220,13 @@
 
     try {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Please select an image file');
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Please select an image file");
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Image must be smaller than 5MB');
+        throw new Error("Image must be smaller than 5MB");
       }
 
       // Convert to base64
@@ -190,23 +234,24 @@
       const dataUrl = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result;
-          if (typeof result !== 'string' || !result.startsWith('data:image/')) {
-            reject(new Error('Failed to read image data'));
+          if (typeof result !== "string" || !result.startsWith("data:image/")) {
+            reject(new Error("Failed to read image data"));
             return;
           }
           resolve(result);
         };
-        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.onerror = () => reject(new Error("Failed to read file"));
         reader.readAsDataURL(file);
       });
 
       editPortrait = dataUrl;
     } catch (error) {
-      portraitError = error instanceof Error ? error.message : 'Failed to upload portrait';
+      portraitError =
+        error instanceof Error ? error.message : "Failed to upload portrait";
     } finally {
       uploadingPortraitId = null;
       // Reset input
-      input.value = '';
+      input.value = "";
     }
   }
 
@@ -215,18 +260,18 @@
 
     // Validate requirements
     if (!imageSettings.nanoGptApiKey) {
-      portraitError = 'NanoGPT API key required for portrait generation';
+      portraitError = "NanoGPT API key required for portrait generation";
       return;
     }
 
     // Get visual descriptors from current edit state or character
     const descriptors = editVisualDescriptors
-      .split(',')
-      .map(d => d.trim())
+      .split(",")
+      .map((d) => d.trim())
       .filter(Boolean);
 
     if (descriptors.length === 0) {
-      portraitError = 'Add appearance descriptors first';
+      portraitError = "Add appearance descriptors first";
       return;
     }
 
@@ -236,33 +281,38 @@
     try {
       // Get the style prompt
       const styleId = imageSettings.styleId;
-      let stylePrompt = '';
+      let stylePrompt = "";
       try {
         const promptContext = {
-          mode: 'adventure' as const,
-          pov: 'second' as const,
-          tense: 'present' as const,
-          protagonistName: '',
+          mode: "adventure" as const,
+          pov: "second" as const,
+          tense: "present" as const,
+          protagonistName: "",
         };
-        stylePrompt = promptService.getPrompt(styleId, promptContext) || '';
+        stylePrompt = promptService.getPrompt(styleId, promptContext) || "";
       } catch {
         // Use default style
-        stylePrompt = 'Soft cel-shaded anime illustration. Muted pastel color palette with low saturation. Dreamy, airy atmosphere.';
+        stylePrompt =
+          "Soft cel-shaded anime illustration. Muted pastel color palette with low saturation. Dreamy, airy atmosphere.";
       }
 
       // Build the portrait generation prompt using the template
       const promptContext = {
-        mode: 'adventure' as const,
-        pov: 'second' as const,
-        tense: 'present' as const,
-        protagonistName: '',
+        mode: "adventure" as const,
+        pov: "second" as const,
+        tense: "present" as const,
+        protagonistName: "",
       };
 
-      const portraitPrompt = promptService.renderPrompt('image-portrait-generation', promptContext, {
-        imageStylePrompt: stylePrompt,
-        visualDescriptors: descriptors.join(', '),
-        characterName: editName || character.name,
-      });
+      const portraitPrompt = promptService.renderPrompt(
+        "image-portrait-generation",
+        promptContext,
+        {
+          imageStylePrompt: stylePrompt,
+          visualDescriptors: descriptors.join(", "),
+          characterName: editName || character.name,
+        },
+      );
 
       // Create the image provider
       const provider = new NanoGPTImageProvider(imageSettings.nanoGptApiKey);
@@ -270,18 +320,19 @@
       // Generate the image
       const response = await provider.generateImage({
         prompt: portraitPrompt,
-        model: imageSettings.portraitModel || 'z-image-turbo',
-        size: '1024x1024',
-        response_format: 'b64_json',
+        model: imageSettings.portraitModel || "z-image-turbo",
+        size: "1024x1024",
+        response_format: "b64_json",
       });
 
       if (response.images.length === 0 || !response.images[0].b64_json) {
-        throw new Error('No image data returned');
+        throw new Error("No image data returned");
       }
 
       editPortrait = `data:image/png;base64,${response.images[0].b64_json}`;
     } catch (error) {
-      portraitError = error instanceof Error ? error.message : 'Failed to generate portrait';
+      portraitError =
+        error instanceof Error ? error.message : "Failed to generate portrait";
     } finally {
       generatingPortraitId = null;
     }
@@ -297,150 +348,168 @@
     ui.toggleEntityCollapsed(characterId, !isCollapsed);
   }
 
-  function getSectionLineCount(character: Character): number {
-    let lines = 0;
-    if (character.traits.length > 0) lines++;
-    if (character.visualDescriptors && character.visualDescriptors.length > 0) lines++;
-    if (character.description) {
-      // Estimate description lines based on length
-      const words = character.description.split(/\s+/).length;
-      lines += Math.ceil(words / 8); // ~8 words per line
-    }
-    return lines;
+  function hasDetails(character: Character): boolean {
+    return (
+      character.traits.length > 0 ||
+      (character.visualDescriptors && character.visualDescriptors.length > 0) ||
+      !!character.description
+    );
   }
 </script>
 
-<div class="space-y-3">
+<div class="flex flex-col gap-3">
+  <!-- Header -->
   <div class="flex items-center justify-between">
-    <h3 class="font-medium text-surface-200">Characters</h3>
+    <h3 class="text-sm font-medium text-surface-400">Characters</h3>
     <button
-      class="btn-ghost rounded p-1"
-      onclick={() => showAddForm = !showAddForm}
+      class="sm:btn-ghost flex items-center justify-center rounded-md p-1.5 text-surface-400 hover:text-surface-200"
+      onclick={() => (showAddForm = !showAddForm)}
       title="Add character"
     >
       <Plus class="h-4 w-4" />
     </button>
   </div>
 
+  <!-- Add Form -->
   {#if showAddForm}
-    <div class="card space-y-2">
-      <input
-        type="text"
-        bind:value={newName}
-        placeholder="Character name"
-        class="input text-sm"
-      />
-      <input
-        type="text"
-        bind:value={newRelationship}
-        placeholder="Relationship (e.g., ally, enemy)"
-        class="input text-sm"
-      />
-      <textarea
-        bind:value={newDescription}
-        placeholder="Description (optional)"
-        class="input text-sm"
-        rows="2"
-      ></textarea>
-      <div class="flex justify-end gap-2">
-        <button class="btn btn-secondary text-xs" onclick={() => showAddForm = false}>
+    <div class="rounded-lg border border-surface-700/50 bg-surface-800/50 p-3">
+      <div class="space-y-2">
+        <input
+          type="text"
+          bind:value={newName}
+          placeholder="Name"
+          class="input text-sm"
+        />
+        <input
+          type="text"
+          bind:value={newRelationship}
+          placeholder="Relationship (ally, enemy...)"
+          class="input text-sm"
+        />
+        <textarea
+          bind:value={newDescription}
+          placeholder="Description (optional)"
+          class="input resize-none text-sm"
+          rows="2"
+        ></textarea>
+      </div>
+      <div class="mt-3 flex justify-end gap-2">
+        <button
+          class="btn sm:btn-ghost px-3 py-1.5 text-xs"
+          onclick={() => (showAddForm = false)}
+        >
           Cancel
         </button>
-        <button class="btn btn-primary text-xs" onclick={addCharacter} disabled={!newName.trim()}>
+        <button
+          class="btn btn-primary px-3 py-1.5 text-xs"
+          onclick={addCharacter}
+          disabled={!newName.trim()}
+        >
           Add
         </button>
       </div>
     </div>
   {/if}
 
+  <!-- Empty State -->
   {#if story.characters.length === 0}
-    <p class="py-4 text-center text-sm text-surface-500">
-      No characters yet
-    </p>
+    <div class="flex flex-col items-center justify-center py-8 text-center">
+      <div class="mb-3 rounded-full bg-surface-800 p-3">
+        <UserPlus class="h-6 w-6 text-surface-500" />
+      </div>
+      <p class="text-sm text-surface-500">No characters yet</p>
+      <button
+        class="mt-3 flex items-center gap-1.5 text-xs text-accent-400 hover:text-accent-300"
+        onclick={() => (showAddForm = true)}
+      >
+        <Plus class="h-3.5 w-3.5" />
+        Add your first character
+      </button>
+    </div>
   {:else}
-    <div class="space-y-2">
+    <!-- Character List -->
+    <div class="flex flex-col gap-2">
       {#each story.characters as character (character.id)}
         {@const StatusIcon = getStatusIcon(character.status)}
-        {@const isProtagonist = character.relationship === 'self'}
+        {@const isProtagonist = character.relationship === "self"}
         {@const isCollapsed = ui.isEntityCollapsed(character.id)}
-        {@const sectionLineCount = getSectionLineCount(character)}
-        {@const needsCollapse = sectionLineCount > 8}
-        <div class="card p-3">
-          <!-- Section 1: Portrait, Name, and Relationship -->
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <div class="flex min-w-0 items-start gap-2 flex-1">
-              {#if character.portrait}
-                <button
-                  class="flex-shrink-0 cursor-pointer"
-                  onclick={() => expandedPortrait = { src: normalizeImageDataUrl(character.portrait) ?? '', name: character.name }}
-                >
-                  <img
-                    src={normalizeImageDataUrl(character.portrait) ?? ''}
-                    alt="{character.name} portrait"
-                    class="h-10 w-10 rounded-lg object-cover ring-1 ring-surface-600 hover:ring-2 hover:ring-accent-500 transition-all"
-                  />
-                </button>
-              {:else}
-                <div class="rounded-full bg-surface-700 p-1.5 {getStatusColor(character.status)} flex-shrink-0">
-                  <StatusIcon class="h-4 w-4" />
-                </div>
-              {/if}
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{character.name}</span>
-                  {#if isProtagonist}
-                    <span class="inline-flex items-center gap-1 rounded-full bg-accent-500/20 px-2 py-0.5 text-xs text-accent-300">
-                      <Star class="h-3 w-3" /> Protagonist
-                    </span>
-                  {:else if character.relationship}
-                    <span class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
-                      {character.relationship}
-                    </span>
-                  {/if}
-                </div>
+        {@const showDetails = hasDetails(character) && !isCollapsed}
+
+        <div
+          class="group rounded-lg border border-surface-700/50 bg-surface-800/30 p-3 transition-colors hover:bg-surface-800/60"
+        >
+          <!-- Row 1: Portrait + Name -->
+          <div class="flex items-start gap-2.5 pr-3 sm:pr-0">
+            <!-- Portrait / Avatar -->
+            {#if character.portrait}
+              <button
+                class="flex-shrink-0"
+                onclick={() =>
+                  (expandedPortrait = {
+                    src: normalizeImageDataUrl(character.portrait) ?? "",
+                    name: character.name,
+                  })}
+              >
+                <img
+                  src={normalizeImageDataUrl(character.portrait) ?? ""}
+                  alt="{character.name} portrait"
+                  class="h-9 w-9 rounded-lg object-cover ring-1 ring-surface-600 transition-all hover:ring-2 hover:ring-accent-500"
+                />
+              </button>
+            {:else}
+              <div
+                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ring-1 {getStatusBgColor(
+                  character.status,
+                )}"
+              >
+                <StatusIcon
+                  class="h-4 w-4 {getStatusColor(character.status)}"
+                />
+              </div>
+            {/if}
+
+            <!-- Name & Role -->
+            <div class="min-w-0 flex-1">
+              <p class="font-medium leading-tight text-surface-100">
+                {character.name}
+              </p>
+              <div class="mt-0.5 flex items-center gap-1.5">
+                {#if isProtagonist}
+                  <span
+                    class="inline-flex items-center gap-1 rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-medium text-accent-300"
+                  >
+                    <Star class="h-2.5 w-2.5" />
+                    Protagonist
+                  </span>
+                {:else if character.relationship}
+                  <span class="text-xs text-surface-500"
+                    >{character.relationship}</span
+                  >
+                {/if}
               </div>
             </div>
           </div>
 
-          <!-- Section 2: Traits, Visual Descriptors, and Description -->
-          <div class="mt-3 space-y-2 rounded-md bg-surface-800/40" class:max-h-32={isCollapsed && needsCollapse} class:overflow-hidden={isCollapsed && needsCollapse}>
-            {#if character.traits.length > 0}
-              <div class="break-words text-xs">
-                <span class="font-medium text-surface-400">Traits:</span>
-                <span class="text-surface-500">{character.traits.join(', ')}</span>
-              </div>
-            {/if}
-            {#if character.visualDescriptors && character.visualDescriptors.length > 0}
-              <div class="break-words text-xs">
-                <span class="font-medium text-pink-400/80">Appearance:</span>
-                <span class="text-pink-400/60">{character.visualDescriptors.join(', ')}</span>
-              </div>
-            {/if}
-            {#if character.description}
-              <p class="break-words text-sm text-surface-400">{character.description}</p>
-            {/if}
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
-            <div class="flex items-center gap-1">
+          <!-- Row 2: Actions -->
+          <div class="mt-2 flex items-center justify-between">
+            <div class="flex items-center -ml-1 gap-1 sm:gap-0">
               {#if confirmingDeleteId === character.id}
                 <button
-                  class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
+                  class="rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
                   onclick={() => deleteCharacter(character)}
                 >
-                  Confirm
+                  Delete?
                 </button>
                 <button
-                  class="btn-ghost rounded px-2 py-1 text-xs"
-                  onclick={() => confirmingDeleteId = null}
+                  class="rounded px-2 py-1 text-xs text-surface-400 hover:bg-surface-700"
+                  onclick={() => (confirmingDeleteId = null)}
                 >
                   Cancel
                 </button>
               {:else}
                 {#if !isProtagonist}
                   <button
-                    class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                    class="flex h-6 w-6 items-center justify-center rounded p-0 text-surface-500 hover:text-amber-400 sm:h-auto sm:w-auto sm:btn-ghost sm:p-1.5"
                     onclick={() => beginSwap(character)}
                     title="Make protagonist"
                   >
@@ -448,65 +517,104 @@
                   </button>
                 {/if}
                 <button
-                  class="btn-ghost rounded p-1.5 sm:p-1 {savedToVaultId === character.id ? 'text-green-400' : 'text-surface-500 hover:text-accent-400'}"
+                  class="flex h-6 w-6 items-center justify-center rounded p-0 {savedToVaultId ===
+                  character.id
+                    ? 'text-green-400'
+                    : 'text-surface-500 hover:text-accent-400'} sm:h-auto sm:w-auto sm:btn-ghost sm:p-1.5"
                   onclick={() => saveCharacterToVault(character)}
-                  title={savedToVaultId === character.id ? 'Saved!' : 'Save to vault'}
+                  title={savedToVaultId === character.id
+                    ? "Saved!"
+                    : "Save to vault"}
                 >
                   <Archive class="h-3.5 w-3.5" />
                 </button>
                 <button
-                  class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                  class="flex h-6 w-6 items-center justify-center rounded p-0 text-surface-500 hover:text-surface-200 sm:h-auto sm:w-auto sm:btn-ghost sm:p-1.5"
                   onclick={() => startEdit(character)}
-                  title="Edit character"
+                  title="Edit"
                 >
                   <Pencil class="h-3.5 w-3.5" />
                 </button>
                 <button
-                  class="btn-ghost rounded p-1.5 text-surface-500 hover:text-red-400 disabled:opacity-40 sm:p-1"
-                  onclick={() => confirmingDeleteId = character.id}
-                  title={isProtagonist ? 'Swap protagonist before deleting' : 'Delete character'}
+                  class="flex h-6 w-6 items-center justify-center rounded p-0 text-surface-500 hover:text-red-400 disabled:opacity-40 sm:h-auto sm:w-auto sm:btn-ghost sm:p-1.5"
+                  onclick={() => (confirmingDeleteId = character.id)}
+                  title={isProtagonist ? "Swap protagonist first" : "Delete"}
                   disabled={isProtagonist}
                 >
                   <Trash2 class="h-3.5 w-3.5" />
                 </button>
               {/if}
             </div>
-            {#if needsCollapse}
+            {#if hasDetails(character)}
               <button
-                class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+                class="flex h-6 w-6 items-center justify-center rounded p-0 text-surface-500 hover:text-surface-200 -mr-1 sm:mr-0 sm:h-auto sm:w-auto sm:btn-ghost sm:p-1.5"
                 onclick={() => toggleCollapse(character.id)}
-                title={isCollapsed ? 'Expand' : 'Collapse'}
+                title={isCollapsed ? "Show details" : "Hide details"}
               >
-                {#if isCollapsed}
-                  <ChevronDown class="h-3.5 w-3.5" />
-                {:else}
-                  <ChevronUp class="h-3.5 w-3.5" />
-                {/if}
+                <ChevronDown
+                  class="h-3.5 w-3.5 transition-transform {!isCollapsed
+                    ? 'rotate-180'
+                    : ''}"
+                />
               </button>
             {/if}
           </div>
 
+          <!-- Details Section - Collapsible -->
+          {#if showDetails}
+            <div class="mt-2 space-y-1.5 text-xs">
+              {#if character.traits.length > 0}
+                <div class="flex flex-wrap gap-1">
+                  {#each character.traits as trait}
+                    <span
+                      class="rounded bg-surface-700/80 px-1.5 py-0.5 text-surface-400"
+                      >{trait}</span
+                    >
+                  {/each}
+                </div>
+              {/if}
+              {#if character.visualDescriptors && character.visualDescriptors.length > 0}
+                <div class="flex flex-wrap gap-1">
+                  {#each character.visualDescriptors as descriptor}
+                    <span
+                      class="rounded bg-pink-500/10 px-1.5 py-0.5 text-pink-400/70"
+                      >{descriptor}</span
+                    >
+                  {/each}
+                </div>
+              {/if}
+              {#if character.description}
+                <p class="pt-0.5 text-surface-400">{character.description}</p>
+              {/if}
+            </div>
+          {/if}
+
           <!-- Protagonist Swap Modal -->
           {#if pendingProtagonistId === character.id}
-            <div class="mt-3 space-y-2 rounded-md border border-surface-700/60 bg-surface-800/40 p-2">
-              <p class="text-xs text-surface-400">
-                Label the previous protagonist ({currentProtagonistName}).
+            <div class="mt-2 rounded-md bg-surface-800/50 p-2.5">
+              <p class="mb-2 text-xs text-surface-400">
+                New role for <span class="text-surface-300"
+                  >{currentProtagonistName}</span
+                >:
               </p>
               <input
                 type="text"
                 bind:value={previousRelationshipLabel}
-                placeholder="e.g., former protagonist"
+                placeholder="e.g., former protagonist, ally"
                 class="input text-sm"
               />
               {#if swapError}
-                <p class="text-xs text-red-400">{swapError}</p>
+                <p class="mt-1.5 text-xs text-red-400">{swapError}</p>
               {/if}
-              <div class="flex justify-end gap-2">
-                <button class="btn btn-secondary text-xs" onclick={cancelSwap}>
+              <div class="mt-2 flex justify-end gap-2">
+                <button
+                  class="btn sm:btn-ghost px-3 py-1.5 text-xs"
+                  onclick={cancelSwap}
+                >
                   Cancel
                 </button>
                 <button
-                  class="btn btn-primary text-xs"
+                  class="btn btn-primary px-3 py-1.5 text-xs"
                   onclick={() => confirmSwap(character)}
                   disabled={!previousRelationshipLabel.trim()}
                 >
@@ -516,120 +624,134 @@
             </div>
           {/if}
 
+          <!-- Edit Form -->
           {#if editingId === character.id}
-            <div class="mt-3 space-y-2">
-              <input
-                type="text"
-                bind:value={editName}
-                placeholder="Character name"
-                class="input text-sm"
-              />
-              <input
-                type="text"
-                bind:value={editRelationship}
-                placeholder={isProtagonist ? 'Relationship (protagonist)' : 'Relationship'}
-                class="input text-sm"
-                disabled={isProtagonist}
-              />
-              <select bind:value={editStatus} class="input text-sm">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="deceased">Deceased</option>
-              </select>
-              <input
-                type="text"
-                bind:value={editTraits}
-                placeholder="Traits (comma separated)"
-                class="input text-sm"
-              />
-              <input
-                type="text"
-                bind:value={editVisualDescriptors}
-                placeholder="Appearance (comma separated, for images)"
-                class="input text-sm"
-              />
-              <textarea
-                bind:value={editDescription}
-                placeholder="Description (optional)"
-                class="input text-sm"
-                rows="2"
-              ></textarea>
+            <div class="mt-2 rounded-md bg-surface-800/50 p-2.5">
+              <div class="space-y-2">
+                <input
+                  type="text"
+                  bind:value={editName}
+                  placeholder="Name"
+                  class="input text-sm"
+                />
+                <div class="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    bind:value={editRelationship}
+                    placeholder={isProtagonist ? "Protagonist" : "Relationship"}
+                    class="input text-sm"
+                    disabled={isProtagonist}
+                  />
+                  <select bind:value={editStatus} class="input text-sm">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="deceased">Deceased</option>
+                  </select>
+                </div>
+                <input
+                  type="text"
+                  bind:value={editTraits}
+                  placeholder="Traits (comma separated)"
+                  class="input text-sm"
+                />
+                <input
+                  type="text"
+                  bind:value={editVisualDescriptors}
+                  placeholder="Appearance (comma separated)"
+                  class="input text-sm"
+                />
+                <textarea
+                  bind:value={editDescription}
+                  placeholder="Description"
+                  class="input resize-none text-sm"
+                  rows="2"
+                ></textarea>
 
-              <!-- Portrait Section -->
-              <div class="rounded-md border border-surface-700/60 bg-surface-800/40 p-3">
-                <div class="mb-2 text-xs font-medium text-surface-400">Portrait</div>
-                <div class="flex items-start gap-3">
-                  {#if editPortrait}
-                    <div class="relative">
-                      <img
-                        src={normalizeImageDataUrl(editPortrait) ?? ''}
-                        alt="Portrait preview"
-                        class="h-20 w-20 rounded-lg object-cover ring-1 ring-surface-600"
-                      />
-                      <button
-                        class="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 sm:-right-1 sm:-top-1 sm:h-5 sm:w-5"
-                        onclick={removePortrait}
-                        title="Remove portrait"
+                <!-- Portrait Section -->
+                <div
+                  class="rounded-md border border-surface-700/50 bg-surface-800/30 p-3"
+                >
+                  <div class="mb-2 text-xs font-medium text-surface-400">
+                    Portrait
+                  </div>
+                  <div class="flex items-start gap-3">
+                    {#if editPortrait}
+                      <div class="relative">
+                        <img
+                          src={normalizeImageDataUrl(editPortrait) ?? ""}
+                          alt="Portrait preview"
+                          class="h-16 w-16 rounded-lg object-cover ring-1 ring-surface-600"
+                        />
+                        <button
+                          class="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                          onclick={removePortrait}
+                          title="Remove"
+                        >
+                          <X class="h-3 w-3" />
+                        </button>
+                      </div>
+                    {:else}
+                      <div
+                        class="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-surface-600 bg-surface-800/50"
                       >
-                        <X class="h-4 w-4 sm:h-3 sm:w-3" />
+                        <User class="h-6 w-6 text-surface-600" />
+                      </div>
+                    {/if}
+                    <div class="flex flex-1 flex-col gap-2">
+                      <label
+                        class="btn btn-secondary flex cursor-pointer items-center justify-center gap-1.5 px-3 py-2 text-xs"
+                      >
+                        {#if uploadingPortraitId === character.id}
+                          <Loader2 class="h-3.5 w-3.5 animate-spin" />
+                          <span>Uploading...</span>
+                        {:else}
+                          <ImageUp class="h-3.5 w-3.5" />
+                          <span>Upload</span>
+                        {/if}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="hidden"
+                          onchange={handlePortraitUpload}
+                          disabled={uploadingPortraitId !== null ||
+                            generatingPortraitId !== null}
+                        />
+                      </label>
+                      <button
+                        class="btn btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 text-xs"
+                        onclick={() => generatePortrait(character)}
+                        disabled={generatingPortraitId !== null ||
+                          uploadingPortraitId !== null ||
+                          !editVisualDescriptors.trim()}
+                        title={!editVisualDescriptors.trim()
+                          ? "Add appearance first"
+                          : "Generate from appearance"}
+                      >
+                        {#if generatingPortraitId === character.id}
+                          <Loader2 class="h-3.5 w-3.5 animate-spin" />
+                          <span>Generating...</span>
+                        {:else}
+                          <Wand2 class="h-3.5 w-3.5" />
+                          <span>Generate</span>
+                        {/if}
                       </button>
                     </div>
-                  {:else}
-                    <div class="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-surface-600 bg-surface-800">
-                      <User class="h-8 w-8 text-surface-600" />
-                    </div>
-                  {/if}
-                  <div class="flex flex-1 flex-col gap-2">
-                    <label class="btn btn-secondary text-xs min-h-[44px] sm:min-h-0 cursor-pointer">
-                      {#if uploadingPortraitId === character.id}
-                        <Loader2 class="h-4 w-4 sm:h-3 sm:w-3 animate-spin" />
-                        Uploading...
-                      {:else}
-                        <ImageUp class="h-4 w-4 sm:h-3 sm:w-3" />
-                        Upload
-                      {/if}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        class="hidden"
-                        onchange={handlePortraitUpload}
-                        disabled={uploadingPortraitId !== null || generatingPortraitId !== null}
-                      />
-                    </label>
-                    <button
-                      class="btn btn-secondary text-xs min-h-[44px] sm:min-h-0"
-                      onclick={() => generatePortrait(character)}
-                      disabled={generatingPortraitId !== null || uploadingPortraitId !== null || !editVisualDescriptors.trim()}
-                      title={!editVisualDescriptors.trim() ? 'Add appearance descriptors first' : 'Generate portrait from appearance'}
-                    >
-                      {#if generatingPortraitId === character.id}
-                        <Loader2 class="h-4 w-4 sm:h-3 sm:w-3 animate-spin" />
-                        Generating...
-                      {:else}
-                        <Wand2 class="h-4 w-4 sm:h-3 sm:w-3" />
-                        Generate
-                      {/if}
-                    </button>
-                    <p class="text-xs text-surface-500">
-                      {#if editPortrait}
-                        Portrait will be used as reference for image generation
-                      {:else}
-                        Upload or generate a portrait from appearance
-                      {/if}
-                    </p>
                   </div>
+                  {#if portraitError}
+                    <p class="mt-2 text-xs text-red-400">{portraitError}</p>
+                  {/if}
                 </div>
-                {#if portraitError}
-                  <p class="mt-2 text-xs text-red-400">{portraitError}</p>
-                {/if}
               </div>
 
-              <div class="flex justify-end gap-2">
-                <button class="btn btn-secondary text-xs" onclick={cancelEdit}>
+              <div class="mt-3 flex justify-end gap-2">
+                <button
+                  class="btn sm:btn-ghost px-3 py-1.5 text-xs"
+                  onclick={cancelEdit}
+                >
                   Cancel
                 </button>
                 <button
-                  class="btn btn-primary text-xs"
+                  class="btn btn-primary px-3 py-1.5 text-xs"
                   onclick={() => saveEdit(character)}
                   disabled={!editName.trim()}
                 >
@@ -648,9 +770,9 @@
 {#if expandedPortrait}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 cursor-pointer"
-    onclick={() => expandedPortrait = null}
-    onkeydown={(e) => e.key === 'Escape' && (expandedPortrait = null)}
+    class="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/80 p-4"
+    onclick={() => (expandedPortrait = null)}
+    onkeydown={(e) => e.key === "Escape" && (expandedPortrait = null)}
     role="dialog"
     aria-label="Expanded portrait"
   >
@@ -661,10 +783,13 @@
         class="max-h-[80vh] max-w-[80vw] rounded-lg object-contain"
       />
       <button
-        class="absolute -right-3 -top-3 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-surface-700 text-surface-300 hover:bg-surface-600 hover:text-white sm:-right-2 sm:-top-2 sm:min-h-0 sm:min-w-0 sm:p-1.5"
-        onclick={(e) => { e.stopPropagation(); expandedPortrait = null; }}
+        class="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-surface-700 text-surface-300 hover:bg-surface-600 hover:text-white"
+        onclick={(e) => {
+          e.stopPropagation();
+          expandedPortrait = null;
+        }}
       >
-        <X class="h-5 w-5 sm:h-4 sm:w-4" />
+        <X class="h-4 w-4" />
       </button>
     </div>
   </div>
