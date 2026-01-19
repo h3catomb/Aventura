@@ -10,6 +10,8 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { StreamingHtmlRenderer } from '$lib/utils/htmlStreaming';
 import { countTokens } from '$lib/services/tokenizer';
 
+export type VaultTab = 'characters' | 'lorebooks' | 'scenarios';
+
 // Debug log entry for request/response logging
 export interface DebugLogEntry {
   id: string;
@@ -93,6 +95,7 @@ class UIStore {
   settingsModalOpen = $state(false);
   isGenerating = $state(false);
   isRetryingLastMessage = $state(false); // Hide stop button during completed-message retries
+  vaultTab = $state<VaultTab>('characters');
 
   // Image generation state
   imageAnalysisInProgress = $state(false);  // LLM analyzing narrative for imageable scenes
@@ -266,6 +269,10 @@ class UIStore {
 
   setSidebarTab(tab: SidebarTab) {
     this.sidebarTab = tab;
+  }
+
+  setVaultTab(tab: VaultTab) {
+    this.vaultTab = tab;
   }
 
   toggleSidebar() {

@@ -14,8 +14,6 @@
     type Tense,
   } from "$lib/services/ai/scenario";
   import {
-    parseSillyTavernLorebook,
-    classifyEntriesWithLLM,
     type ImportedEntry,
     type LorebookImportResult,
   } from "$lib/services/lorebookImporter";
@@ -121,7 +119,6 @@
   // Character Vault integration
   let showProtagonistVaultPicker = $state(false);
   let showSupportingVaultPicker = $state(false);
-  let showLorebookVaultPicker = $state(false);
   let savedToVaultConfirm = $state(false);
 
   // Step 7: Portraits
@@ -135,11 +132,7 @@
 
   // Step 2: Import Lorebook
   let importedLorebooks = $state<ImportedLorebookItem[]>([]);
-  let isImporting = $state(false);
-  let isClassifying = $state(false);
-  let classificationProgress = $state({ current: 0, total: 0 });
   let importError = $state<string | null>(null);
-  let importFileInput: HTMLInputElement | null = null;
 
   const importedEntries = $derived(
     importedLorebooks.flatMap((lb) => lb.entries),
@@ -1314,76 +1307,7 @@
     }
   }
 
-  // Lorebook import functions
-  async function handleFileSelect(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
 
-    importError = null;
-    isImporting = true;
-
-    try {
-      const content = await file.text();
-      const result = parseSillyTavernLorebook(content);
-
-      if (!result.success) {
-        importError = result.errors.join("; ") || "Failed to parse lorebook";
-        isImporting = false;
-        return;
-      }
-
-      if (result.entries.length === 0) {
-        importError =
-          "No valid entries found in this file. Please select a valid lorebook JSON file.";
-        isImporting = false;
-        return;
-      }
-
-      let classifiedEntries = result.entries;
-
-      if (result.entries.length > 0 && !settings.needsApiKey) {
-        isImporting = false;
-        isClassifying = true;
-        classificationProgress = { current: 0, total: result.entries.length };
-
-        try {
-          classifiedEntries = await classifyEntriesWithLLM(
-            result.entries,
-            (current, total) => {
-              classificationProgress = { current, total };
-            },
-            selectedMode,
-          );
-        } catch (classifyError) {
-          console.error("LLM classification failed:", classifyError);
-        } finally {
-          isClassifying = false;
-        }
-      }
-
-      importedLorebooks = [
-        ...importedLorebooks,
-        {
-          id: crypto.randomUUID(),
-          filename: file.name,
-          result,
-          entries: classifiedEntries,
-          expanded: true,
-        },
-      ];
-
-      isImporting = false;
-    } catch (err) {
-      importError = err instanceof Error ? err.message : "Failed to read file";
-      isImporting = false;
-      isClassifying = false;
-    } finally {
-      if (importFileInput) {
-        importFileInput.value = "";
-      }
-    }
-  }
 
   async function handleSelectLorebookFromVault(vaultLorebook: VaultLorebook) {
     const entries = vaultLorebook.entries.map((e) => ({
@@ -1411,27 +1335,12 @@
         expanded: true,
       },
     ];
-    showLorebookVaultPicker = false;
   }
 
-  async function handleSaveLorebookToVault(lb: ImportedLorebookItem) {
-    try {
-      const name = lb.filename.replace(/\.json$/i, "");
-
-      const vaultEntries: VaultLorebookEntry[] = lb.entries.map((e) => {
-        const { originalData, ...rest } = e;
-        return rest;
-      });
-
-      await lorebookVault.saveFromImport(
-        name,
-        vaultEntries,
-        lb.result,
-        lb.filename,
-      );
-    } catch (error) {
-      console.error("Failed to save lorebook to vault:", error);
-    }
+  function handleNavigateToVault() {
+    ui.setActivePanel("vault");
+    ui.setVaultTab("lorebooks");
+    onClose();
   }
 
   function removeLorebook(id: string) {
@@ -1450,11 +1359,6 @@
   function clearAllLorebooks() {
     importedLorebooks = [];
     importError = null;
-    isClassifying = false;
-    classificationProgress = { current: 0, total: 0 };
-    if (importFileInput) {
-      importFileInput.value = "";
-    }
   }
 
   // Scenario Vault Handler
@@ -1716,19 +1620,12 @@
       {:else if currentStep === 2}
         <Step2Lorebook
           {importedLorebooks}
-          {isImporting}
-          {isClassifying}
-          {classificationProgress}
           {importError}
-          {showLorebookVaultPicker}
-          onShowVaultPickerChange={(show) => (showLorebookVaultPicker = show)}
-          onFileSelect={handleFileSelect}
           onSelectFromVault={handleSelectLorebookFromVault}
-          onSaveToVault={handleSaveLorebookToVault}
           onRemoveLorebook={removeLorebook}
           onToggleExpanded={toggleLorebookExpanded}
           onClearAll={clearAllLorebooks}
-          importFileInputRef={(el) => (importFileInput = el)}
+          onNavigateToVault={handleNavigateToVault}
         />
       {:else if currentStep === 3}
         <Step3Genre

@@ -36,7 +36,7 @@
   type VaultTab = "characters" | "lorebooks" | "scenarios";
 
   // State
-  let activeTab = $state<VaultTab>("characters");
+  let activeTab = $state<VaultTab>(ui.vaultTab);
   let searchQuery = $state("");
   let showFavoritesOnly = $state(false);
 
@@ -134,6 +134,16 @@
     if (!characterVault.isLoaded) characterVault.load();
     if (!lorebookVault.isLoaded) lorebookVault.load();
     if (!scenarioVault.isLoaded) scenarioVault.load();
+  });
+
+  // Sync with UI store
+  $effect(() => {
+    activeTab = ui.vaultTab;
+  });
+
+  // Update UI store when tab changes
+  $effect(() => {
+    ui.setVaultTab(activeTab);
   });
 
   // Character Handlers

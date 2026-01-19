@@ -31,6 +31,12 @@ export interface ImportedLorebookItem {
   result: LorebookImportResult;
   entries: ImportedEntry[];
   expanded: boolean;
+  /** Whether this lorebook is currently being processed (parsing or classifying) */
+  isLoading?: boolean;
+  /** Current loading phase message (e.g., "Parsing...", "Classifying entries...") */
+  loadingMessage?: string;
+  /** Classification progress for this specific lorebook */
+  classificationProgress?: { current: number; total: number };
 }
 
 /**
