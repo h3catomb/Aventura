@@ -553,29 +553,35 @@
    ============================================= */
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
   }
 
   .btn-primary {
-    background-color: var(--color-accent-600);
-    color: white;
+    @apply h-9 flex items-center justify-center gap-2 px-4 rounded-lg bg-accent-600 text-surface-100 text-sm font-medium;
   }
 
   .btn-primary:hover {
-    background-color: var(--color-accent-700);
+    @apply bg-accent-500;
   }
 
   .btn-primary:active {
-    background-color: var(--color-accent-800);
+    @apply bg-accent-700;
+  }
+
+  .btn-primary:disabled {
+    @apply bg-surface-700 text-surface-500 cursor-not-allowed;
   }
 
   .btn-secondary {
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
+    @apply h-9 flex items-center justify-center gap-2 px-3 rounded-lg border border-surface-600 bg-surface-800 text-sm text-surface-300 font-medium;
   }
 
   .btn-secondary:hover {
-    background-color: var(--border-secondary);
+    @apply border-surface-500 text-surface-100;
+  }
+
+  .btn-secondary:disabled {
+    @apply bg-surface-800 text-surface-600 border-surface-700 cursor-not-allowed;
   }
 
   .btn-ghost {

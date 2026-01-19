@@ -1815,14 +1815,14 @@
     <div
       class="flex justify-between border-t border-surface-700 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-0 shrink-0"
     >
-      <button
-        class="btn btn-secondary flex items-center gap-1"
-        onclick={prevStep}
-        disabled={currentStep === 1}
-      >
-        <ChevronLeft class="h-4 w-4" />
-        Back
-      </button>
+      {#if currentStep > 1}
+        <button class="btn btn-secondary gap-1 pl-2" onclick={prevStep}>
+          <ChevronLeft class="h-4 w-4" />
+          Back
+        </button>
+      {:else}
+        <div></div>
+      {/if}
 
       {#if currentStep === totalSteps}
         <button
@@ -1840,7 +1840,7 @@
         </button>
       {:else}
         <button
-          class="btn btn-primary flex items-center gap-1"
+          class="btn btn-primary gap-1 pr-2.5"
           onclick={nextStep}
           disabled={!canProceed()}
         >
