@@ -2553,7 +2553,12 @@ class SettingsStore {
   async resetGenerationPresets() {
     const effectiveProvider = this.getEffectiveProviderPreset();
     const customModel = effectiveProvider === 'custom' ? this.getFirstModelFromDefaultProfile() : null;
-    this.generationPresets = getDefaultGenerationPresetsForProvider(effectiveProvider, customModel);
+    const defaultProfileId = this.getDefaultProfileIdForProvider();
+    // Populate profileIds with the default profile ID (presets come with null by default)
+    this.generationPresets = getDefaultGenerationPresetsForProvider(effectiveProvider, customModel).map(preset => ({
+      ...preset,
+      profileId: preset.profileId || defaultProfileId
+    }));
     await this.saveGenerationPresets();
   }
 
@@ -2918,7 +2923,11 @@ class SettingsStore {
     this.wizardSettings = getDefaultAdvancedSettingsForProvider(effectiveProvider);
 
     // Apply provider-specific defaults to generation presets (Agent Profiles)
-    this.generationPresets = getDefaultGenerationPresetsForProvider(provider);
+    // Populate profileIds with the default profile ID (presets come with null by default)
+    this.generationPresets = getDefaultGenerationPresetsForProvider(provider).map(preset => ({
+      ...preset,
+      profileId: preset.profileId || defaultProfileId
+    }));
 
     // Save everything
     await this.saveProfiles();
@@ -3124,7 +3133,12 @@ class SettingsStore {
     // Check and update generation presets
     if (this.generationPresetsMatchDefaults()) {
       console.log('[Settings] Generation presets match defaults, auto-applying new defaults');
-      this.generationPresets = getDefaultGenerationPresetsForProvider(provider);
+      const defaultProfileId = this.getDefaultProfileIdForProvider();
+      // Populate profileIds with the default profile ID (presets come with null by default)
+      this.generationPresets = getDefaultGenerationPresetsForProvider(provider).map(preset => ({
+        ...preset,
+        profileId: preset.profileId || defaultProfileId
+      }));
       await this.saveGenerationPresets();
       needsSave = true;
     }

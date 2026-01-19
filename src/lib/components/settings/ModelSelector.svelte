@@ -30,10 +30,14 @@
   let inputRef = $state<HTMLInputElement | null>(null);
   let lastProfileId = $state(profileId);
 
+  // Resolve the effective profile ID (with fallback to default)
+  // This ensures models are available even if profileId is null
+  let effectiveProfileId = $derived(profileId || settings.getDefaultProfileIdForProvider());
+
   // Get available models for the selected profile
   let availableModels = $derived.by(() => {
-    if (!profileId) return [];
-    const profile = settings.getProfile(profileId);
+    if (!effectiveProfileId) return [];
+    const profile = settings.getProfile(effectiveProfileId);
     if (!profile) return [];
     // Combine fetched and custom models, removing duplicates
     return [...new Set([...profile.fetchedModels, ...profile.customModels])];
