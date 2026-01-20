@@ -571,6 +571,7 @@ Example structure:
 
 **FORBIDDEN:**
 - Plain text without HTML tags (NO raw paragraphs - use \`<p>\`)
+- Markdown syntax (\`*asterisks*\`, \`**bold**\`) - use \`<em>\`, \`<strong>\`, or \`<span>\` with styles instead
 - \`position: fixed/absolute\` - breaks the interface
 - \`<script>\` tags - only HTML and CSS
 - Box-shadow animation - use border-color, background-color, or opacity instead
