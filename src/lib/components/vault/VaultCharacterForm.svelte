@@ -4,6 +4,13 @@
   import { X, User, Users, ImageUp, Loader2 } from 'lucide-svelte';
   import { normalizeImageDataUrl } from '$lib/utils/image';
   import TagInput from '$lib/components/tags/TagInput.svelte';
+  import { cn } from '$lib/utils/cn';
+
+  import * as Dialog from '$lib/components/ui/dialog';
+  import { Input } from '$lib/components/ui/input';
+  import { Textarea } from '$lib/components/ui/textarea';
+  import { Button } from '$lib/components/ui/button';
+  import { Label } from '$lib/components/ui/label';
 
   interface Props {
     character?: VaultCharacter | null;
@@ -120,246 +127,219 @@
   }
 </script>
 
-<!-- Modal backdrop -->
-<div
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-  onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-  role="dialog"
-  aria-modal="true"
->
-  <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg bg-surface-800 shadow-xl">
-    <!-- Header -->
-    <div class="flex items-center justify-between border-b border-surface-700 p-4">
-      <h2 class="text-lg font-semibold text-surface-100">
-        {isEditing ? 'Edit Character' : 'New Character'}
-      </h2>
-      <button
-        class="rounded p-1.5 hover:bg-surface-700"
-        onclick={onClose}
-      >
-        <X class="h-5 w-5 text-surface-400" />
-      </button>
-    </div>
+<Dialog.Root open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+  <Dialog.Content class="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <Dialog.Header>
+      <Dialog.Title>{isEditing ? 'Edit Character' : 'New Character'}</Dialog.Title>
+    </Dialog.Header>
 
-    <!-- Form -->
-    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="p-4 space-y-4">
+    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4 py-2">
       {#if error}
-        <div class="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+        <div class="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
           {error}
         </div>
       {/if}
 
       <!-- Character Type -->
-      <div>
-        <label class="block text-sm font-medium text-surface-300 mb-2">Character Type</label>
+      <div class="space-y-2">
+        <Label>Character Type</Label>
         <div class="flex gap-2">
-          <button
+          <Button
             type="button"
-            class="flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors {
-              characterType === 'protagonist'
-                ? 'border-accent-500 bg-accent-500/20 text-accent-300'
-                : 'border-surface-600 bg-surface-700 text-surface-400 hover:border-surface-500'
-            }"
+            variant={characterType === 'protagonist' ? "default" : "outline"}
+            class="flex-1"
             onclick={() => characterType = 'protagonist'}
           >
-            <User class="h-4 w-4" />
+            <User class="mr-2 h-4 w-4" />
             Protagonist
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors {
-              characterType === 'supporting'
-                ? 'border-accent-500 bg-accent-500/20 text-accent-300'
-                : 'border-surface-600 bg-surface-700 text-surface-400 hover:border-surface-500'
-            }"
+            variant={characterType === 'supporting' ? "default" : "outline"}
+            class="flex-1"
             onclick={() => characterType = 'supporting'}
           >
-            <Users class="h-4 w-4" />
+            <Users class="mr-2 h-4 w-4" />
             Supporting
-          </button>
+          </Button>
         </div>
       </div>
 
       <!-- Name -->
-      <div>
-        <label for="name" class="block text-sm font-medium text-surface-300 mb-1">Name *</label>
-        <input
+      <div class="space-y-2">
+        <Label for="name">Name *</Label>
+        <Input
           id="name"
           type="text"
           bind:value={name}
           placeholder="Character name"
-          class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
         />
       </div>
 
       <!-- Description -->
-      <div>
-        <label for="description" class="block text-sm font-medium text-surface-300 mb-1">Description</label>
-        <textarea
+      <div class="space-y-2">
+        <Label for="description">Description</Label>
+        <Textarea
           id="description"
           bind:value={description}
           placeholder="Brief description of the character"
-          rows="3"
-          class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none resize-none"
-        ></textarea>
+          rows={3}
+          class="resize-none"
+        />
       </div>
 
       <!-- Protagonist-specific fields -->
       {#if characterType === 'protagonist'}
-        <div>
-          <label for="background" class="block text-sm font-medium text-surface-300 mb-1">Background</label>
-          <textarea
+        <div class="space-y-2">
+          <Label for="background">Background</Label>
+          <Textarea
             id="background"
             bind:value={background}
             placeholder="Character's backstory and history"
-            rows="2"
-            class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none resize-none"
-          ></textarea>
+            rows={2}
+            class="resize-none"
+          />
         </div>
 
-        <div>
-          <label for="motivation" class="block text-sm font-medium text-surface-300 mb-1">Motivation</label>
-          <input
+        <div class="space-y-2">
+          <Label for="motivation">Motivation</Label>
+          <Input
             id="motivation"
             type="text"
             bind:value={motivation}
             placeholder="What drives this character?"
-            class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
           />
         </div>
       {/if}
 
       <!-- Supporting-specific fields -->
       {#if characterType === 'supporting'}
-        <div>
-          <label for="role" class="block text-sm font-medium text-surface-300 mb-1">Role</label>
-          <input
+        <div class="space-y-2">
+          <Label for="role">Role</Label>
+          <Input
             id="role"
             type="text"
             bind:value={role}
             placeholder="e.g., Mentor, Rival, Love Interest"
-            class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
           />
         </div>
 
-        <div>
-          <label for="relationship" class="block text-sm font-medium text-surface-300 mb-1">Relationship Template</label>
-          <input
+        <div class="space-y-2">
+          <Label for="relationship">Relationship Template</Label>
+          <Input
             id="relationship"
             type="text"
             bind:value={relationshipTemplate}
             placeholder="Default relationship to protagonist"
-            class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
           />
         </div>
       {/if}
 
       <!-- Traits -->
-      <div>
-        <label for="traits" class="block text-sm font-medium text-surface-300 mb-1">Traits</label>
-        <input
+      <div class="space-y-2">
+        <Label for="traits">Traits</Label>
+        <Input
           id="traits"
           type="text"
           bind:value={traits}
           placeholder="Brave, Curious, Stubborn (comma-separated)"
-          class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
         />
-        <p class="mt-1 text-xs text-surface-500">Comma-separated personality traits</p>
+        <p class="text-[0.8rem] text-muted-foreground">Comma-separated personality traits</p>
       </div>
 
       <!-- Visual Descriptors -->
-      <div>
-        <label for="visualDescriptors" class="block text-sm font-medium text-surface-300 mb-1">Visual Descriptors</label>
-        <input
+      <div class="space-y-2">
+        <Label for="visualDescriptors">Visual Descriptors</Label>
+        <Input
           id="visualDescriptors"
           type="text"
           bind:value={visualDescriptors}
           placeholder="Tall, dark hair, blue eyes (comma-separated)"
-          class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
         />
-        <p class="mt-1 text-xs text-surface-500">Used for portrait generation</p>
+        <p class="text-[0.8rem] text-muted-foreground">Used for portrait generation</p>
       </div>
 
       <!-- Portrait -->
-      <div>
-        <label class="block text-sm font-medium text-surface-300 mb-2">Portrait</label>
+      <div class="space-y-2">
+        <Label>Portrait</Label>
         <div class="flex items-start gap-4">
           {#if portrait}
-            <div class="relative">
+            <div class="relative group">
               <img
                 src={normalizeImageDataUrl(portrait) ?? ''}
                 alt="Portrait preview"
-                class="h-20 w-20 rounded-lg object-cover ring-1 ring-surface-600"
+                class="h-20 w-20 rounded-md object-cover ring-1 ring-border"
               />
               <button
                 type="button"
-                class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                class="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                 onclick={removePortrait}
               >
                 <X class="h-3 w-3" />
               </button>
             </div>
           {:else}
-            <div class="flex h-20 w-20 items-center justify-center rounded-lg bg-surface-700 ring-1 ring-surface-600">
+            <div class="flex h-20 w-20 items-center justify-center rounded-md bg-muted ring-1 ring-border">
               {#if characterType === 'protagonist'}
-                <User class="h-8 w-8 text-surface-500" />
+                <User class="h-8 w-8 text-muted-foreground" />
               {:else}
-                <Users class="h-8 w-8 text-surface-500" />
+                <Users class="h-8 w-8 text-muted-foreground" />
               {/if}
             </div>
           {/if}
 
-          <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-sm text-surface-300 hover:border-surface-500">
-            {#if uploadingPortrait}
-              <Loader2 class="h-4 w-4 animate-spin" />
-            {:else}
-              <ImageUp class="h-4 w-4" />
-            {/if}
-            Upload Image
-            <input
-              type="file"
-              accept="image/*"
-              class="hidden"
-              onchange={handlePortraitUpload}
-              disabled={uploadingPortrait}
-            />
-          </label>
+          <div class="flex-1">
+             <Button variant="outline" class="w-full relative cursor-pointer" disabled={uploadingPortrait}>
+                {#if uploadingPortrait}
+                  <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                {:else}
+                  <ImageUp class="mr-2 h-4 w-4" />
+                {/if}
+                Upload Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  onchange={handlePortraitUpload}
+                  disabled={uploadingPortrait}
+                />
+             </Button>
+          </div>
         </div>
       </div>
 
       <!-- Tags -->
-      <div>
-        <label for="tags" class="block text-sm font-medium text-surface-300 mb-1">Tags</label>
+      <div class="space-y-2">
+        <Label for="tags">Tags</Label>
         <TagInput
           value={tags}
           type="character"
           onChange={(newTags) => tags = newTags}
           placeholder="Add tags..."
         />
-        <p class="mt-1 text-xs text-surface-500">For organizing your vault</p>
+        <p class="text-[0.8rem] text-muted-foreground">For organizing your vault</p>
       </div>
 
       <!-- Actions -->
-      <div class="flex justify-end gap-3 pt-4 border-t border-surface-700">
-        <button
+      <Dialog.Footer class="gap-2 sm:gap-0">
+        <Button
           type="button"
-          class="rounded-lg px-4 py-2 text-sm text-surface-400 hover:text-surface-200"
+          variant="ghost"
           onclick={onClose}
           disabled={saving}
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          class="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 disabled:opacity-50"
           disabled={saving || !name.trim()}
         >
           {#if saving}
-            <Loader2 class="h-4 w-4 animate-spin" />
+            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
           {/if}
           {isEditing ? 'Save Changes' : 'Create Character'}
-        </button>
-      </div>
+        </Button>
+      </Dialog.Footer>
     </form>
-  </div>
-</div>
+  </Dialog.Content>
+</Dialog.Root>

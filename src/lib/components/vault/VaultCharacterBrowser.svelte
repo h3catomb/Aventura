@@ -1,8 +1,15 @@
 <script lang="ts">
   import { characterVault } from "$lib/stores/characterVault.svelte";
   import type { VaultCharacter, VaultCharacterType } from "$lib/types";
-  import { Search, User, Users, Loader2 } from "lucide-svelte";
+  import { Search, User, Users } from "lucide-svelte";
   import { normalizeImageDataUrl } from "$lib/utils/image";
+  import { Input } from "$lib/components/ui/input";
+  import { Button } from "$lib/components/ui/button";
+  import { Badge } from "$lib/components/ui/badge";
+  import * as Avatar from "$lib/components/ui/avatar";
+  import { ScrollArea } from "$lib/components/ui/scroll-area";
+  import { Skeleton } from "$lib/components/ui/skeleton";
+  import { cn } from "$lib/utils/cn";
 
   interface Props {
     onSelect: (character: VaultCharacter) => void;
@@ -48,10 +55,6 @@
     });
   });
 
-  const hasVaultCharacters = $derived(
-    characterVault.isLoaded && filteredCharacters.length > 0,
-  );
-
   const emptyMessage = $derived(
     filterType === "protagonist"
       ? "No protagonists in vault"
@@ -75,37 +78,47 @@
   }
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
   <!-- Search -->
   {#if characterVault.characters.filter((c) => !filterType || c.characterType === filterType).length > 0}
     <div class="relative">
       <Search
-        class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-500"
+        class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
       />
-      <input
+      <Input
         type="text"
         bind:value={searchQuery}
         placeholder="Search characters..."
-        class="w-full rounded-lg border border-surface-600 bg-surface-800 pl-10 pr-3 py-2 text-sm text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
+        class="pl-9 bg-background"
       />
     </div>
   {/if}
 
   <!-- Character List -->
-  <div class="max-h-64 overflow-y-auto">
-    {#if !characterVault.isLoaded}
-      <div class="flex h-32 items-center justify-center">
-        <Loader2 class="h-6 w-6 animate-spin text-surface-500" />
-      </div>
-    {:else if filteredCharacters.length === 0}
-      <div class="flex h-32 items-center justify-center">
-        <div class="text-center">
+  <div class="rounded-md border bg-muted/10">
+    <ScrollArea class="h-72 w-full rounded-md p-2">
+      {#if !characterVault.isLoaded}
+        <div class="space-y-3 p-2">
+          {#each Array(3) as _}
+            <div class="flex items-center space-x-4">
+              <Skeleton class="h-10 w-10 rounded-full" />
+              <div class="space-y-2">
+                <Skeleton class="h-4 w-[150px]" />
+                <Skeleton class="h-3 w-[100px]" />
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else if filteredCharacters.length === 0}
+        <div
+          class="flex h-48 flex-col items-center justify-center p-4 text-center"
+        >
           {#if filterType === "protagonist"}
-            <User class="mx-auto h-8 w-8 text-surface-600" />
+            <User class="mb-2 h-8 w-8 text-muted-foreground/50" />
           {:else}
-            <Users class="mx-auto h-8 w-8 text-surface-600" />
+            <Users class="mb-2 h-8 w-8 text-muted-foreground/50" />
           {/if}
-          <p class="mt-2 text-sm text-surface-400">
+          <p class="text-sm text-muted-foreground">
             {#if searchQuery}
               No characters match your search
             {:else}
@@ -113,58 +126,66 @@
             {/if}
           </p>
           {#if !searchQuery && onNavigateToVault}
-            <button
-              class="mt-3 px-3 py-1.5 rounded-lg bg-surface-700 hover:bg-surface-600 text-xs text-surface-200 transition-colors"
+            <Button
+              variant="outline"
+              size="sm"
+              class="mt-4"
               onclick={onNavigateToVault}
             >
               Go to Vault
-            </button>
+            </Button>
           {/if}
         </div>
-      </div>
-    {:else}
-      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {#each filteredCharacters as character (character.id)}
-          <button
-            class="relative text-left rounded-lg border bg-surface-800 p-3 transition-all {isSelected(character.id)
-              ? 'border-green-500 bg-green-500/10'
-              : 'border-surface-700 hover:border-accent-500'}"
-            onclick={() => handleSelect(character)}
-          >
-            {#if isSelected(character.id)}
-              <div
-                class="absolute top-2 right-2 text-xs text-green-400 bg-green-500/20 px-1.5 py-0.5 rounded"
-              >
-                Selected
-              </div>
-            {/if}
-            <div class="flex items-start gap-2">
-              <!-- Portrait -->
-              {#if character.portrait}
-                <img
+      {:else}
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {#each filteredCharacters as character (character.id)}
+            <button
+              class={cn(
+                "group relative flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isSelected(character.id)
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-transparent bg-card shadow-sm hover:border-primary/20",
+              )}
+              onclick={() => handleSelect(character)}
+            >
+              <!-- Avatar -->
+              <Avatar.Root class="h-10 w-10 border shadow-sm">
+                <Avatar.Image
                   src={normalizeImageDataUrl(character.portrait) ?? ""}
                   alt={character.name}
-                  class="h-10 w-10 rounded-lg object-cover ring-1 ring-surface-600 shrink-0"
+                  class="object-cover"
                 />
-              {:else if character.characterType === "protagonist"}
-                <User class="h-5 w-5 text-accent-400 shrink-0 mt-0.5" />
-              {:else}
-                <Users class="h-5 w-5 text-surface-400 shrink-0 mt-0.5" />
-              {/if}
-              <div class="flex-1 min-w-0">
-                <h4 class="font-medium text-surface-100 truncate text-sm">
-                  {character.name}
-                </h4>
-                <p class="text-xs text-surface-400 mt-0.5">
+                <Avatar.Fallback class="bg-muted text-muted-foreground">
+                  {#if character.characterType === "protagonist"}
+                    <User class="h-5 w-5" />
+                  {:else}
+                    <Users class="h-5 w-5" />
+                  {/if}
+                </Avatar.Fallback>
+              </Avatar.Root>
+
+              <!-- Info -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="truncate text-sm font-medium leading-none">
+                    {character.name}
+                  </h4>
+                  {#if isSelected(character.id)}
+                    <Badge variant="default" class="h-5 px-1.5 text-[10px]">
+                      Selected
+                    </Badge>
+                  {/if}
+                </div>
+                <p class="mt-1 truncate text-xs text-muted-foreground">
                   {character.characterType === "protagonist"
                     ? "Protagonist"
                     : character.role || "Supporting"}
                 </p>
               </div>
-            </div>
-          </button>
-        {/each}
-      </div>
-    {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </ScrollArea>
   </div>
 </div>

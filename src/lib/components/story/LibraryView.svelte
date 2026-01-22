@@ -7,13 +7,17 @@
     BookOpen,
     Trash2,
     Clock,
-    Sparkles,
     Upload,
     RefreshCw,
     Archive,
     Plus,
   } from "lucide-svelte";
   import SetupWizard from "../wizard/SetupWizard.svelte";
+
+  import { Button } from "$lib/components/ui/button";
+  import * as Card from "$lib/components/ui/card";
+  import { Badge } from "$lib/components/ui/badge";
+  import { Input } from "$lib/components/ui/input";
 
   // File input for import (HTML-based for mobile compatibility)
   let importFileInput: HTMLInputElement;
@@ -61,19 +65,19 @@
   function getGenreColor(genre: string | null): string {
     switch (genre) {
       case "Fantasy":
-        return "bg-purple-500/20 text-purple-400";
+        return "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20";
       case "Sci-Fi":
-        return "bg-cyan-500/20 text-cyan-400";
+        return "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-500/20";
       case "Mystery":
-        return "bg-amber-500/20 text-amber-400";
+        return "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
       case "Horror":
-        return "bg-red-500/20 text-red-400";
+        return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
       case "Slice of Life":
-        return "bg-green-500/20 text-green-400";
+        return "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20";
       case "Historical":
-        return "bg-orange-500/20 text-orange-400";
+        return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20";
       default:
-        return "bg-surface-700 text-surface-400";
+        return "bg-secondary text-secondary-foreground border-border";
     }
   }
 
@@ -113,42 +117,53 @@
   }
 </script>
 
-<div class="h-full overflow-y-auto p-4 sm:p-6 relative">
-  <div class="mx-auto max-w-4xl min-h-full flex flex-col">
+<div class="h-full overflow-y-auto p-4 sm:p-6 relative bg-background">
+  <div class="mx-auto max-w-5xl min-h-full flex flex-col">
     <!-- Header -->
-    <div class="mb-6 sm:mb-8 flex items-start justify-between gap-4 shrink-0">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-bold text-surface-100">
+    <div
+      class="mb-6 sm:mb-8 flex flex-row items-start justify-between gap-3 sm:gap-4"
+    >
+      <div class="flex-1 min-w-0 mr-2">
+        <h1
+          class="text-xl sm:text-3xl font-bold tracking-tight text-foreground truncate"
+        >
           Story Library
         </h1>
-        <p class="text-sm sm:text-base text-surface-400">
+        <p class="text-sm sm:text-base text-muted-foreground truncate">
           Your adventures await
         </p>
       </div>
-      <div class="flex items-center gap-2 flex-nowrap">
-        <button
-          class="btn btn-secondary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <Button
+          variant="outline"
+          size="icon"
           onclick={() => ui.openSyncModal()}
           title="Sync stories between devices"
+          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
         >
-          <RefreshCw class="h-4 w-4 sm:h-5 sm:w-5" />
-          <span class="hidden xs:inline">Sync</span>
-        </button>
-        <button
-          class="btn btn-secondary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
+          <RefreshCw class="h-5 w-5 sm:h-4 sm:w-4" />
+          <span class="hidden sm:inline">Sync</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
           onclick={() => ui.setActivePanel("vault")}
-          title="Vault - Manage reusable characters and lorebooks"
+          title="Vault"
+          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
         >
-          <Archive class="h-4 w-4 sm:h-5 sm:w-5" />
-          <span class="hidden xs:inline">Vault</span>
-        </button>
-        <button
-          class="btn btn-secondary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
+          <Archive class="h-5 w-5 sm:h-4 sm:w-4" />
+          <span class="hidden sm:inline">Vault</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
           onclick={triggerImport}
+          title="Import Story"
+          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
         >
-          <Upload class="h-4 w-4 sm:h-5 sm:w-5" />
-          <span class="hidden xs:inline">Import</span>
-        </button>
+          <Upload class="h-5 w-5 sm:h-4 sm:w-4" />
+          <span class="hidden sm:inline">Import</span>
+        </Button>
         <input
           type="file"
           accept="*/*,.avt,.json,application/json,application/octet-stream"
@@ -156,19 +171,24 @@
           bind:this={importFileInput}
           onchange={handleImportFileSelect}
         />
-        <button
-          class="btn btn-primary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
+        <Button
+          variant="default"
+          size="icon"
           onclick={openSetupWizard}
+          title="New Story"
+          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
         >
-          <Plus class="h-4 w-4 sm:h-5 sm:w-5" />
-          <span class="hidden xs:inline">New</span>
-        </button>
+          <Plus class="h-5 w-5 sm:h-4 sm:w-4" />
+          <span class="hidden sm:inline">New Story</span>
+        </Button>
       </div>
     </div>
 
     <!-- Import error message -->
     {#if importError}
-      <div class="mb-4 rounded-lg bg-red-500/20 p-3 text-sm text-red-400">
+      <div
+        class="mb-4 rounded-lg bg-destructive/15 p-3 text-sm text-destructive border border-destructive/20"
+      >
         {importError}
       </div>
     {/if}
@@ -178,24 +198,22 @@
       <div
         class="flex flex-col items-center justify-center flex-1 text-center px-4 pb-20"
       >
-        <BookOpen class="mb-2 h-12 w-12 sm:h-16 sm:w-16 text-surface-600" />
-        <h2 class="text-lg sm:text-xl font-semibold text-surface-300">
-          No stories yet
-        </h2>
-        <p class="mt-1 text-sm sm:text-base text-surface-500">
-          Create your first adventure to get started
+        <div class="rounded-full bg-muted p-6 mb-3">
+          <BookOpen class="h-12 w-12 text-muted-foreground" />
+        </div>
+        <h2 class="text-xl font-semibold text-foreground">No stories yet</h2>
+        <p class="text-muted-foreground max-w-sm">
+          Create your first adventure to get started. You can also import
+          existing stories.
         </p>
-        <button
-          class="btn btn-primary flex items-center justify-center gap-2 min-h-[48px] mt-4"
-          onclick={openSetupWizard}
-        >
-          <Plus class="h-5 w-5" />
+        <Button variant="default" class="mt-5" onclick={openSetupWizard}>
+          <Plus class="h-4 w-4" />
           Create Story
-        </button>
+        </Button>
       </div>
     {:else}
       <div
-        class="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3"
+        class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {#each story.allStories as s (s.id)}
           <div
@@ -203,42 +221,57 @@
             tabindex="0"
             onclick={() => openStory(s.id)}
             onkeydown={(e) => e.key === "Enter" && openStory(s.id)}
-            class="card group cursor-pointer text-left transition-colors hover:border-accent-500/50 hover:bg-surface-700/50 active:bg-surface-700 min-h-[80px]"
+            class="h-full"
           >
-            <div class="flex items-start justify-between">
-              <div class="flex-1 min-w-0">
-                <h3
-                  class="font-semibold text-surface-100 group-hover:text-accent-400 truncate"
-                >
-                  {s.title}
-                </h3>
-                {#if s.genre}
-                  <span
-                    class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs {getGenreColor(
-                      s.genre,
-                    )}"
+            <Card.Root
+              class="group cursor-pointer h-full transition-all hover:shadow-md hover:border-primary relative overflow-hidden"
+            >
+              <Card.Header>
+                <div class="flex justify-between items-start gap-2">
+                  <Card.Title
+                    class="text-lg font-semibold leading-tight truncate"
                   >
-                    {s.genre}
-                  </span>
+                    {s.title}
+                  </Card.Title>
+                  <Button
+                    variant="link"
+                    size="icon"
+                    class="h-8 w-8 absolute top-4 right-4 text-muted-foreground hover:text-destructive"
+                    onclick={(e) => deleteStory(s.id, e)}
+                    title="Delete story"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </Button>
+                </div>
+                {#if s.genre}
+                  <div>
+                    <Badge
+                      variant="outline"
+                      class="{getGenreColor(s.genre)} border"
+                    >
+                      {s.genre}
+                    </Badge>
+                  </div>
                 {/if}
-              </div>
-              <button
-                onclick={(e) => deleteStory(s.id, e)}
-                class="rounded p-2 text-surface-500 sm:opacity-0 transition-opacity hover:bg-red-500/20 hover:text-red-400 group-hover:opacity-100 min-h-[40px] min-w-[40px] flex items-center justify-center -mr-1 -mt-1"
-                title="Delete story"
-              >
-                <Trash2 class="h-4 w-4" />
-              </button>
-            </div>
-            {#if s.description}
-              <p class="mt-2 line-clamp-2 text-sm text-surface-400">
-                {s.description}
-              </p>
-            {/if}
-            <div class="mt-3 flex items-center gap-1 text-xs text-surface-500">
-              <Clock class="h-3 w-3" />
-              <span>Updated {formatDate(s.updatedAt)}</span>
-            </div>
+              </Card.Header>
+              <Card.Content>
+                {#if s.description}
+                  <p class="text-sm text-muted-foreground line-clamp-3">
+                    {s.description}
+                  </p>
+                {:else}
+                  <p class="text-sm text-muted-foreground italic">
+                    No description
+                  </p>
+                {/if}
+              </Card.Content>
+              <Card.Footer class="text-xs text-muted-foreground pt-0 mt-auto">
+                <div class="flex items-center gap-1">
+                  <Clock class="h-3 w-3" />
+                  <span>Updated {formatDate(s.updatedAt)}</span>
+                </div>
+              </Card.Footer>
+            </Card.Root>
           </div>
         {/each}
       </div>
@@ -250,7 +283,7 @@
     href="https://discord.gg/DqVzhSPC46"
     target="_blank"
     rel="noopener noreferrer"
-    class="hidden sm:flex fixed bottom-safe-4 left-safe-4 items-center gap-2 rounded-lg bg-[#5865F2] px-3 py-2 text-sm text-white shadow-lg transition-all hover:bg-[#4752C4] hover:scale-105"
+    class="hidden sm:flex fixed bottom-6 left-6 items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm text-secondary-foreground shadow-lg transition-all hover:bg-secondary/80 hover:scale-105 z-40"
   >
     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
       <path
