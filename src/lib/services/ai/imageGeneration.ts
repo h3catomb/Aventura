@@ -122,9 +122,15 @@ export class ImageGenerationService {
     // Check if portrait mode is enabled
     const portraitMode = imageSettings.portraitMode ?? false;
 
-    // Build list of character names that have portraits
-    const charactersWithPortraits = context.presentCharacters
-      .filter(c => c.portrait)
+    // Build list of character names that have/don't have portraits
+    // IMPORTANT: Check the CURRENT story.characters state, not the context snapshot,
+    // to accurately reflect portraits (including user-provided ones) and handle retries correctly
+    const presentCharacterNames = context.presentCharacters.map(c => c.name.toLowerCase());
+    const charactersWithPortraits = story.characters
+      .filter(c => presentCharacterNames.includes(c.name.toLowerCase()) && c.portrait)
+      .map(c => c.name);
+    const charactersWithoutPortraits = story.characters
+      .filter(c => presentCharacterNames.includes(c.name.toLowerCase()) && !c.portrait)
       .map(c => c.name);
 
     log('Starting image generation', {
@@ -134,6 +140,7 @@ export class ImageGenerationService {
       presentCharacters: context.presentCharacters.length,
       portraitMode,
       charactersWithPortraits,
+      charactersWithoutPortraits,
     });
 
     try {
@@ -162,6 +169,7 @@ export class ImageGenerationService {
         chatHistory: context.chatHistory,
         lorebookContext: context.lorebookContext,
         charactersWithPortraits,
+        charactersWithoutPortraits,
         portraitMode,
         translatedNarrative: context.translatedNarrative,
         translationLanguage: context.translationLanguage,
@@ -179,34 +187,32 @@ export class ImageGenerationService {
         characters: scenes.map(s => s.characters),
       });
 
-      // Limit to max images per message (0 = unlimited)
-      const scenesToProcess = scenes.length === 0
+      // Separate portrait generation scenes from regular scenes FIRST
+      // Portraits don't count towards the image limit
+      const allPortraitScenes = scenes.filter(s => s.generatePortrait && s.characters.length > 0);
+      const allRegularScenes = scenes.filter(s => !s.generatePortrait);
+
+      // Apply max images limit only to regular scenes (portraits are unlimited)
+      const portraitScenes = allPortraitScenes.sort((a, b) => b.priority - a.priority);
+      const regularScenes = allRegularScenes.length === 0
         ? []
         : maxImages === 0
-          ? scenes.sort((a, b) => b.priority - a.priority)
-          : scenes.sort((a, b) => b.priority - a.priority).slice(0, maxImages);
-
-      // Separate portrait generation scenes from regular scenes
-      const portraitScenes = scenesToProcess.filter(s => s.generatePortrait && s.characters.length > 0);
-      const regularScenes = scenesToProcess.filter(s => !s.generatePortrait);
+          ? allRegularScenes.sort((a, b) => b.priority - a.priority)
+          : allRegularScenes.sort((a, b) => b.priority - a.priority).slice(0, maxImages);
 
       // Emit event: analysis complete
       emitImageAnalysisComplete(context.entryId, regularScenes.length, portraitScenes.length);
 
-      if (scenesToProcess.length === 0) {
+      if (portraitScenes.length === 0 && regularScenes.length === 0) {
         log('No imageable scenes found');
         return;
       }
 
       log('Processing scenes', {
-        total: scenes.length,
-        selected: scenesToProcess.length,
-        maxAllowed: maxImages,
-      });
-
-      log('Scene breakdown', {
+        totalIdentified: scenes.length,
         portraits: portraitScenes.length,
-        regular: regularScenes.length,
+        regularSelected: regularScenes.length,
+        maxRegularAllowed: maxImages,
       });
 
       // PHASE 1: Generate ALL portraits in PARALLEL first

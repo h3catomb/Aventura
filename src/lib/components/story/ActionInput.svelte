@@ -1698,6 +1698,9 @@
     // Clear lorebook retrieval debug state since it's now stale
     ui.setLastLorebookRetrieval(null);
 
+    // Clear stale image generation context (contains old portrait state)
+    lastImageGenContext = null;
+
     try {
       if (backup.hasFullState) {
         // Full state restore (in-memory backup with snapshots)

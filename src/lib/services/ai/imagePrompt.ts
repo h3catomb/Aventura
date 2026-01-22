@@ -55,6 +55,8 @@ export interface ImagePromptContext {
   lorebookContext?: string;
   /** Names of characters that have portrait images available */
   charactersWithPortraits: string[];
+  /** Names of characters that need portrait generation before appearing in scene images */
+  charactersWithoutPortraits: string[];
   /** Whether to use portrait reference mode (simplified prompts for characters with portraits) */
   portraitMode: boolean;
   /** Translated narrative text - use this for sourceText extraction when available */
@@ -114,9 +116,12 @@ export class ImagePromptService {
     // Build character descriptors string
     const characterDescriptors = this.buildCharacterDescriptors(context.presentCharacters);
 
-    // Build list of characters with portraits for the prompt
+    // Build list of characters with/without portraits for the prompt
     const charactersWithPortraitsStr = context.charactersWithPortraits.length > 0
       ? context.charactersWithPortraits.join(', ')
+      : 'None';
+    const charactersWithoutPortraitsStr = context.charactersWithoutPortraits.length > 0
+      ? context.charactersWithoutPortraits.join(', ')
       : 'None';
 
     const promptContext = {
@@ -136,6 +141,7 @@ export class ImagePromptService {
       imageStylePrompt: context.stylePrompt,
       characterDescriptors: characterDescriptors || 'No character visual descriptors available.',
       charactersWithPortraits: charactersWithPortraitsStr,
+      charactersWithoutPortraits: charactersWithoutPortraitsStr,
       maxImages: context.maxImages === 0 ? '0 (unlimited)' : String(context.maxImages),
     });
 

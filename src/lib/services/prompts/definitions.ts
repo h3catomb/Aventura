@@ -779,6 +779,7 @@ export const CONTEXT_PLACEHOLDERS: ContextPlaceholder[] = [
   { id: 'image-style-prompt', name: 'Image Style Prompt', token: 'imageStylePrompt', category: 'other', description: 'Style guidelines for image generation (anime, photorealistic, etc.)' },
   { id: 'character-descriptors', name: 'Character Descriptors', token: 'characterDescriptors', category: 'other', description: 'Visual appearance descriptors for characters in the scene' },
   { id: 'characters-with-portraits', name: 'Characters With Portraits', token: 'charactersWithPortraits', category: 'other', description: 'List of character names that have portrait images available for reference' },
+  { id: 'characters-without-portraits', name: 'Characters Without Portraits', token: 'charactersWithoutPortraits', category: 'other', description: 'List of character names that need portrait generation before they can appear in scene images' },
   { id: 'visual-descriptors', name: 'Visual Descriptors', token: 'visualDescriptors', category: 'other', description: 'Comma-separated visual appearance details for a single character (hair, eyes, clothing, etc.)' },
   { id: 'chat-history', name: 'Chat History', token: 'chatHistory', category: 'story', description: 'Full untruncated chat history for comprehensive context' },
   { id: 'lorebook-context', name: 'Lorebook Context', token: 'lorebookContext', category: 'story', description: 'Activated lorebook entries for world and character context' },
@@ -2407,7 +2408,7 @@ const imagePromptAnalysisTemplate: PromptTemplate = {
   content: `You identify visually striking moments in narrative text for image generation.
 
 ## Your Task
-Analyze the narrative and identify 0-{{maxImages}} key visual moments (0 = unlimited). Create DETAILED, descriptive image prompts (aim for 500-800 characters each). **Do NOT exceed 800 characters per prompt - prompts over 800 characters will cause an error and fail to generate.**
+Analyze the narrative and identify up to {{maxImages}} key visual moments (0 = unlimited). Create DETAILED, descriptive image prompts (aim for 500-800 characters each). **Do NOT exceed 800 characters per prompt - prompts over 800 characters will cause an error and fail to generate.**
 
 ## Style (MUST include in every prompt)
 {{imageStylePrompt}}
@@ -2485,7 +2486,7 @@ const imagePromptAnalysisReferenceTemplate: PromptTemplate = {
   content: `You identify visually striking moments in narrative text for image generation WITH REFERENCE IMAGES.
 
 ## Your Task
-Analyze the narrative and identify 0-{{maxImages}} key visual moments (0 = unlimited). Create concise image prompts.
+Analyze the narrative and identify up to {{maxImages}} scene images (0 = unlimited). Portrait generations do NOT count towards this limit - generate portraits freely as needed. Create concise image prompts.
 
 **Prompt length targets:**
 - Single character: 200-350 characters
@@ -2504,8 +2505,11 @@ Analyze the narrative and identify 0-{{maxImages}} key visual moments (0 = unlim
 ## Style Keywords (pick 2-3 relevant ones per prompt)
 {{imageStylePrompt}}
 
-## Characters With Portraits
+## Characters With Portraits (can appear in scene images)
 {{charactersWithPortraits}}
+
+## Characters Without Portraits (need portrait generation first)
+{{charactersWithoutPortraits}}
 
 ## Character Visual Descriptors
 {{characterDescriptors}}

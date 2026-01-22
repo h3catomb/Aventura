@@ -2580,7 +2580,7 @@ const newConfig = { ...this.memoryConfig, ...updates };
         status: snapshot.status ?? character.status,
         relationship,
         visualDescriptors: snapshot.visualDescriptors ?? character.visualDescriptors,
-        portrait: snapshot.portrait ?? character.portrait,
+        portrait: snapshot.portrait,  // Use snapshot value directly (null means no portrait)
       };
     });
 
