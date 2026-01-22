@@ -3,21 +3,12 @@
   import { ui } from "$lib/stores/ui.svelte";
   import { exportService } from "$lib/services/export";
   import { ask } from "@tauri-apps/plugin-dialog";
-  import {
-    BookOpen,
-    Trash2,
-    Clock,
-    Upload,
-    RefreshCw,
-    Archive,
-    Plus,
-  } from "lucide-svelte";
+  import { BookOpen, Upload, RefreshCw, Archive, Plus } from "lucide-svelte";
   import SetupWizard from "../wizard/SetupWizard.svelte";
 
-  import { Button } from "$lib/components/ui/button";
-  import * as Card from "$lib/components/ui/card";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Input } from "$lib/components/ui/input";
+  import ResponsiveButton from "$lib/components/shared/ResponsiveButton.svelte";
+  import EmptyState from "$lib/components/shared/EmptyState.svelte";
+  import StoryCard from "$lib/components/story/StoryCard.svelte";
 
   // File input for import (HTML-based for mobile compatibility)
   let importFileInput: HTMLInputElement;
@@ -51,33 +42,6 @@
     );
     if (confirmed) {
       await story.deleteStory(storyId);
-    }
-  }
-
-  function formatDate(timestamp: number): string {
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-
-  function getGenreColor(genre: string | null): string {
-    switch (genre) {
-      case "Fantasy":
-        return "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20";
-      case "Sci-Fi":
-        return "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-500/20";
-      case "Mystery":
-        return "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
-      case "Horror":
-        return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
-      case "Slice of Life":
-        return "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20";
-      case "Historical":
-        return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20";
-      default:
-        return "bg-secondary text-secondary-foreground border-border";
     }
   }
 
@@ -134,36 +98,24 @@
         </p>
       </div>
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <Button
-          variant="outline"
-          size="icon"
-          onclick={() => ui.openSyncModal()}
+        <ResponsiveButton
+          icon={RefreshCw}
+          label="Sync"
           title="Sync stories between devices"
-          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
-        >
-          <RefreshCw class="h-5 w-5 sm:h-4 sm:w-4" />
-          <span class="hidden sm:inline">Sync</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onclick={() => ui.setActivePanel("vault")}
+          onclick={() => ui.openSyncModal()}
+        />
+        <ResponsiveButton
+          icon={Archive}
+          label="Vault"
           title="Vault"
-          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
-        >
-          <Archive class="h-5 w-5 sm:h-4 sm:w-4" />
-          <span class="hidden sm:inline">Vault</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onclick={triggerImport}
+          onclick={() => ui.setActivePanel("vault")}
+        />
+        <ResponsiveButton
+          icon={Upload}
+          label="Import"
           title="Import Story"
-          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
-        >
-          <Upload class="h-5 w-5 sm:h-4 sm:w-4" />
-          <span class="hidden sm:inline">Import</span>
-        </Button>
+          onclick={triggerImport}
+        />
         <input
           type="file"
           accept="*/*,.avt,.json,application/json,application/octet-stream"
@@ -171,16 +123,13 @@
           bind:this={importFileInput}
           onchange={handleImportFileSelect}
         />
-        <Button
+        <ResponsiveButton
           variant="default"
-          size="icon"
-          onclick={openSetupWizard}
+          icon={Plus}
+          label="New Story"
           title="New Story"
-          class="h-10 w-10 sm:w-auto sm:h-10 sm:px-4"
-        >
-          <Plus class="h-5 w-5 sm:h-4 sm:w-4" />
-          <span class="hidden sm:inline">New Story</span>
-        </Button>
+          onclick={openSetupWizard}
+        />
       </div>
     </div>
 
@@ -195,84 +144,20 @@
 
     <!-- Stories grid -->
     {#if story.allStories.length === 0}
-      <div
-        class="flex flex-col items-center justify-center flex-1 text-center px-4 pb-20"
-      >
-        <div class="rounded-full bg-muted p-6 mb-3">
-          <BookOpen class="h-12 w-12 text-muted-foreground" />
-        </div>
-        <h2 class="text-xl font-semibold text-foreground">No stories yet</h2>
-        <p class="text-muted-foreground max-w-sm">
-          Create your first adventure to get started. You can also import
-          existing stories.
-        </p>
-        <Button variant="default" class="mt-5" onclick={openSetupWizard}>
-          <Plus class="h-4 w-4" />
-          Create Story
-        </Button>
-      </div>
+      <EmptyState
+        icon={BookOpen}
+        title="No stories yet"
+        description="Create your first adventure to get started. You can also import existing stories."
+        actionLabel="Create Story"
+        onAction={openSetupWizard}
+        class="pb-20"
+      />
     {:else}
       <div
         class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {#each story.allStories as s (s.id)}
-          <div
-            role="button"
-            tabindex="0"
-            onclick={() => openStory(s.id)}
-            onkeydown={(e) => e.key === "Enter" && openStory(s.id)}
-            class="h-full"
-          >
-            <Card.Root
-              class="group cursor-pointer h-full transition-all hover:shadow-md hover:border-primary relative overflow-hidden"
-            >
-              <Card.Header>
-                <div class="flex justify-between items-start gap-2">
-                  <Card.Title
-                    class="text-lg font-semibold leading-tight truncate"
-                  >
-                    {s.title}
-                  </Card.Title>
-                  <Button
-                    variant="link"
-                    size="icon"
-                    class="h-8 w-8 absolute top-4 right-4 text-muted-foreground hover:text-destructive"
-                    onclick={(e) => deleteStory(s.id, e)}
-                    title="Delete story"
-                  >
-                    <Trash2 class="h-4 w-4" />
-                  </Button>
-                </div>
-                {#if s.genre}
-                  <div>
-                    <Badge
-                      variant="outline"
-                      class="{getGenreColor(s.genre)} border"
-                    >
-                      {s.genre}
-                    </Badge>
-                  </div>
-                {/if}
-              </Card.Header>
-              <Card.Content>
-                {#if s.description}
-                  <p class="text-sm text-muted-foreground line-clamp-3">
-                    {s.description}
-                  </p>
-                {:else}
-                  <p class="text-sm text-muted-foreground italic">
-                    No description
-                  </p>
-                {/if}
-              </Card.Content>
-              <Card.Footer class="text-xs text-muted-foreground pt-0 mt-auto">
-                <div class="flex items-center gap-1">
-                  <Clock class="h-3 w-3" />
-                  <span>Updated {formatDate(s.updatedAt)}</span>
-                </div>
-              </Card.Footer>
-            </Card.Root>
-          </div>
+          <StoryCard story={s} onOpen={openStory} onDelete={deleteStory} />
         {/each}
       </div>
     {/if}
