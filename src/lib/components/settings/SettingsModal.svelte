@@ -273,66 +273,33 @@
                   {:else if tab.id === "images"}
                     <ImagesTab />
                   {:else if tab.id === "tts"}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                          <Volume2 class="h-5 w-5" />
-                          Text to Speech
-                        </CardTitle>
-                        <CardDescription
-                          >Configure text-to-speech settings for narration</CardDescription
-                        >
-                      </CardHeader>
-                      <CardContent>
-                        <TTSSettings />
-                      </CardContent>
-                    </Card>
+                    <TTSSettings />
                   {:else if tab.id === "advanced"}
                     <div class="space-y-6">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle class="flex items-center gap-2">
-                            <SettingsIcon class="h-5 w-5" />
-                            Advanced Settings
-                          </CardTitle>
-                          <CardDescription
-                            >Advanced configuration options</CardDescription
-                          >
-                        </CardHeader>
-                        <CardContent>
-                          <AdvancedSettings />
-                        </CardContent>
-                      </Card>
+                      <AdvancedSettings />
 
-                      <Alert variant="destructive">
-                        <RotateCcw class="h-4 w-4" />
-                        <AlertDescription>
-                          <div class="flex items-center justify-between">
-                            <div>
-                              <p class="font-medium">Reset All Settings</p>
-                              <p class="text-sm mt-1">
-                                Reset all settings to defaults. Your API key
-                                will be preserved.
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              class="border-destructive/50 text-destructive hover:bg-destructive/20"
-                              onclick={handleResetAll}
-                              disabled={isResettingSettings}
-                            >
-                              {#if isResettingSettings}
-                                <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                                Resetting...
-                              {:else}
-                                <RotateCcw class="mr-2 h-4 w-4" />
-                                Reset
-                              {/if}
-                            </Button>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
+                      <div class="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
+                        <div class="space-y-0.5">
+                          <p class="font-medium text-destructive">Reset All Settings</p>
+                          <p class="text-xs text-muted-foreground">
+                            Resets all settings to defaults. API key is preserved.
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onclick={handleResetAll}
+                          disabled={isResettingSettings}
+                        >
+                          {#if isResettingSettings}
+                            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                            Resetting...
+                          {:else}
+                            <RotateCcw class="mr-2 h-4 w-4" />
+                            Reset
+                          {/if}
+                        </Button>
+                      </div>
                     </div>
                   {/if}
                 </div></TabsContent
