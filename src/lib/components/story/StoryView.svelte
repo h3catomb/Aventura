@@ -183,7 +183,7 @@
 
   <!-- Action input area -->
   <div class="border-t border-surface-700 bg-surface-800 px-3 sm:pl-6 sm:pr-8 pt-2 pb-1 sm:py-4 pb-safe">
-    <div class="mx-auto max-w-[48rem]">
+    <div class="mx-auto max-w-3xl">
       <ActionInput />
     </div>
   </div>
