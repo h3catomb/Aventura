@@ -150,26 +150,41 @@
 </script>
 
 <header
-  class="relative z-10 flex h-12 sm:h-14 items-center justify-between border-b bg-background px-1 sm:px-4"
+  class="relative z-10 flex h-12 sm:h-14 items-center justify-between border-b bg-card px-1 sm:px-4"
 >
   <!-- Left side: Story title -->
   <div class="flex items-center min-w-0">
     <div class="flex items-center gap-3 px-2.5 sm:px-1">
-      <img src="/logo.png" alt="Aventuras" class="h-7 w-7 flex-shrink-0" />
+      <div
+        class="h-7 w-7 flex-shrink-0 bg-primary"
+        style="mask-image: url('/logo.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center; -webkit-mask-image: url('/logo.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;"
+        role="img"
+        aria-label="Aventuras"
+      ></div>
       {#if story.currentStory}
-        <span
-          class="font-semibold text-primary text-sm sm:text-base truncate max-w-[160px] sm:max-w-none"
-        >
-          {story.currentStory.title}
-        </span>
+        <div class="flex items-center gap-2 min-w-0">
+          <span
+            class="font-semibold text-foreground text-sm sm:text-base truncate max-w-40 sm:max-w-none sm:translate-y-[-1.5px]"
+          >
+            {story.currentStory.title}
+          </span>
+          {#if ui.isGenerating}
+            <div
+              class="h-2 w-2 animate-pulse rounded-full bg-accent-500 sm:hidden flex-shrink-0"
+            ></div>
+          {/if}
+        </div>
         {#if settings.uiSettings.showWordCount}
-          <span class="text-sm text-muted-foreground hidden lg:inline"
+          <span
+            class="text-sm text-muted-foreground hidden lg:inline sm:-translate-y-px"
             >({story.wordCount} words)</span
           >
         {/if}
       {:else}
         <!-- App Branding (Library Mode) -->
-        <span class="font-semibold text-primary text-lg">Aventuras</span>
+        <span class="font-semibold text-foreground text-lg sm:translate-y-[-1.5px]"
+          >Aventuras</span
+        >
       {/if}
     </div>
   </div>
@@ -180,9 +195,9 @@
   <!-- Right side: Export and Settings -->
   <div class="flex items-center">
     {#if ui.isGenerating}
-      <div class="flex items-center gap-1.5 text-sm text-accent-400">
+      <div class="hidden sm:flex items-center gap-1.5 text-sm text-accent-400">
         <div class="h-2 w-2 animate-pulse rounded-full bg-accent-500"></div>
-        <span class="hidden sm:inline">Generating...</span>
+        <span>Generating...</span>
       </div>
     {/if}
 

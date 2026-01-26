@@ -22,7 +22,7 @@
   
   // Check if reasoning is enabled in API settings
   let isReasoningEnabled = $derived(
-    settings.apiSettings.reasoningEffort !== 'off' && settings.apiSettings.enableThinking
+    settings.apiSettings.reasoningEffort !== 'off'
   );
   
   // Live token counts (separate)

@@ -2068,24 +2068,24 @@
   {#if isCreativeMode}
     <!-- Creative Writing Mode: Direction Input -->
     <div
-      class="rounded-lg border border-border border-l-0 sm:border-l-4 shadow-sm {ui.isGenerating
+      class="rounded-lg sm:border sm:border-border border-l-0 sm:border-l-4 sm:shadow-sm {ui.isGenerating
         ? 'sm:border-l-surface-600 bg-surface-400/5'
         : 'border-l-accent-500 bg-card'} transition-colors duration-200 relative"
     >
       <!-- Mobile Word Count Pill -->
       {#if settings.uiSettings.showWordCount}
-        <div class="absolute top-2 right-0 sm:hidden">
+        <div class="absolute -top-[2.05rem] -right-3 sm:hidden">
           <div
-            class="bg-surface-700 px-2 py-0.5 rounded-b-lg rounded-t-md text-[10px] text-surface-400"
+            class="bg-surface-800 px-2 py-0.5 border border-surface-500/30 border-b-0 rounded-tl-md text-sm text-surface-400"
           >
-            {story.wordCount} wc
+            {story.wordCount} words
           </div>
         </div>
       {/if}
 
       <!-- Creative Writing Mode: Suggestions (Header) -->
       {#if !settings.uiSettings.disableSuggestions}
-        <div class="border-b border-surface-700/30">
+        <div class="sm:border-b border-surface-700/30">
           <Suggestions
             suggestions={ui.suggestions}
             loading={ui.suggestionsLoading}
@@ -2095,7 +2095,7 @@
         </div>
       {/if}
 
-      <div class="flex items-end gap-1 p-0.5 mb-3 sm:mb-2 sm:p-1.5">
+      <div class="flex items-center sm:items-end gap-1 mb-3 sm:mb-0 sm:p-1">
         <div class="relative flex-1 min-w-0">
           <textarea
             bind:value={inputValue}
@@ -2106,19 +2106,13 @@
             class="w-full bg-transparent border-none focus:ring-0 px-2 min-h-6 sm:min-h-6 max-h-40 resize-none text-base text-surface-200 placeholder-surface-500 focus:outline-none leading-relaxed"
             rows="1"
           ></textarea>
-          <!-- Character Count -->
-          <div
-            class="absolute bottom-0 right-0 text-[10px] text-surface-500 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity"
-          >
-            {inputValue.length}
-          </div>
         </div>
 
         {#if ui.isGenerating}
           {#if !ui.isRetryingLastMessage}
             <button
               onclick={handleStopGeneration}
-              class="h-11 w-11 p-0 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 transition-all active:scale-95 flex-shrink-0 animate-pulse"
+              class="h-11 w-11 p-0 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 transition-all active:scale-95 flex-shrink-0 animate-pulse -translate-y-0.5 sm:translate-y-0"
               title="Stop generation"
             >
               <Square class="h-6 w-6" />
@@ -2136,7 +2130,7 @@
           <button
             onclick={handleSubmit}
             disabled={!inputValue.trim()}
-            class="h-11 w-11 p-0 flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:opacity-50 flex-shrink-0 text-accent-400 hover:text-accent-300 hover:bg-accent-500/10"
+            class="h-11 w-11 p-0 flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:opacity-50 flex-shrink-0 text-accent-400 hover:text-accent-300 hover:bg-accent-500/10 -translate-y-0.5 sm:translate-y-0"
             title="Send direction ({sendKeyHint})"
           >
             <Send class="h-6 w-6" />
@@ -2153,7 +2147,7 @@
 
     <!-- Adventure Mode: Redesigned Input -->
     <div
-      class="rounded-lg border border-border border-l-0 sm:border-l-4 shadow-sm {ui.isGenerating
+      class="rounded-lg sm:border sm:border-border border-l-0 sm:border-l-4 sm:shadow-sm {ui.isGenerating
         ? 'sm:border-l-surface-60'
         : `${actionBorderColors[actionType]}`} bg-card transition-colors duration-200 relative"
     >
@@ -2171,7 +2165,7 @@
       <!-- Action type selector row (Top - both mobile and desktop) -->
       {#if !settings.uiSettings.disableActionPrefixes}
         <div
-          class="flex items-center gap-1 border-b border-surface-700/30 px-1 pt-0 pb-2 sm:px-2 sm:py-1"
+          class="flex items-center gap-1 sm:border-b border-surface-700/30 px-1 pt-0 pb-0 sm:px-2 sm:py-1"
         >
           {#each actionTypes as type}
             {@const Icon = actionIcons[type]}
@@ -2191,7 +2185,7 @@
       {/if}
 
       <!-- Main input row -->
-      <div class="flex items-end gap-1 mb-3 sm:mb-0 sm:p-1">
+      <div class="flex items-center sm:items-end gap-1 mb-3 sm:mb-0 sm:p-1">
         <!-- Textarea -->
         <div class="relative flex-1 self-center min-w-0">
           <textarea
@@ -2218,7 +2212,7 @@
           {#if !ui.isRetryingLastMessage}
             <button
               onclick={handleStopGeneration}
-              class="h-11 w-11 p-0 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 transition-all active:scale-95 shrink-0 animate-pulse"
+              class="h-11 w-11 p-0 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 transition-all active:scale-95 shrink-0 animate-pulse -translate-y-0.5 sm:translate-y-0"
               title="Stop generation"
             >
               <Square class="h-6 w-6" />
@@ -2238,7 +2232,7 @@
             disabled={!inputValue.trim()}
             class="h-11 w-11 p-0 flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:opacity-50 shrink-0 {actionButtonStyles[
               actionType
-            ]}"
+            ]} -translate-y-0.5 sm:translate-y-0"
             title="Send ({sendKeyHint})"
           >
             <Send class="h-6 w-6" />

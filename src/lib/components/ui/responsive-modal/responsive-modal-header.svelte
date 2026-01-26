@@ -21,7 +21,7 @@
 {:else}
 	<div
 		class={cn(
-			"flex items-center justify-between py-4 border-b border-border shadow-sm relative z-10 bg-background sm:rounded-t-lg",
+			"flex items-center justify-between py-4 border-b border-border relative z-10 bg-background sm:rounded-t-lg",
 			className,
 		)}
 	>

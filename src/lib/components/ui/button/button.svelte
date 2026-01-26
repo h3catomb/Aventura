@@ -112,7 +112,7 @@
 	{#if isMobile}
 		{#if mobileLabel}<span>{mobileLabel}</span>{/if}
 	{:else}
-		{#if label}<span>{label}</span>{/if}
+		{#if label}<span class="-translate-y-px">{label}</span>{/if}
 		{#if children && !label}{@render children()}{/if}
 		{#if EndIcon}<EndIcon class="h-3 w-3 opacity-50" />{/if}
 	{/if}
@@ -173,7 +173,9 @@
 			{#if Icon}<Icon class={responsiveIconClass} />{/if}
 			{#if mobileLabel}<span class="inline sm:hidden">{mobileLabel}</span
 				>{/if}
-			{#if label}<span class="hidden sm:inline">{label}</span>{/if}
+			{#if label}<span class="hidden sm:inline -translate-y-px"
+					>{label}</span
+				>{/if}
 			{#if children && !label}<span class="hidden sm:inline"
 					>{@render children()}</span
 				>{/if}
@@ -192,7 +194,9 @@
 			{#if Icon}<Icon class={responsiveIconClass} />{/if}
 			{#if mobileLabel}<span class="inline sm:hidden">{mobileLabel}</span
 				>{/if}
-			{#if label}<span class="hidden sm:inline">{label}</span>{/if}
+			{#if label}<span class="hidden sm:inline -translate-y-px"
+					>{label}</span
+				>{/if}
 			{#if children && !label}<span class="hidden sm:inline"
 					>{@render children()}</span
 				>{/if}

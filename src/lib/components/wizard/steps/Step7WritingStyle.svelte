@@ -48,7 +48,7 @@
   <ScrollArea class="h-full pr-4">
     <div class="space-y-4">
       <!-- Narrative Config -->
-      <section class="grid gap-8 md:grid-cols-2">
+      <section class="grid gap-4 sm:gap-8 md:grid-cols-2">
         <!-- Perspective -->
         <div class="space-y-1">
           <Label class="flex items-center gap-2 text-base font-semibold">
@@ -198,7 +198,11 @@
             >
               <div class="flex items-start justify-between w-full mb-2">
                 <span class="font-semibold">Inline Mode</span>
-                <RadioGroup.Item value="inline" id="img-inline" class="sr-only" />
+                <RadioGroup.Item
+                  value="inline"
+                  id="img-inline"
+                  class="sr-only"
+                />
               </div>
               <div class="text-xs text-muted-foreground font-normal">
                 Images are embedded directly in the text flow.

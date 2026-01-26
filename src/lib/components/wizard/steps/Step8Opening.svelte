@@ -43,12 +43,12 @@
     openingDraft: string;
     openingError: string | null;
     manualOpeningText: string;
-    
+
     // Card import
     cardImportedFirstMessage: string | null;
     cardImportedAlternateGreetings: string[];
     selectedGreetingIndex: number;
-    
+
     // Story context for summary
     selectedMode: StoryMode;
     selectedGenre: Genre;
@@ -58,7 +58,7 @@
     expandedSetting: ExpandedSetting | null;
     protagonist: GeneratedProtagonist | null;
     importedEntriesCount: number;
-    
+
     // Handlers
     onTitleChange: (value: string) => void;
     onGuidanceChange: (value: string) => void;
@@ -121,7 +121,8 @@
 
 <div class="space-y-4 p-1">
   <p class="text-muted-foreground">
-    Give your story a title and either write your own opening scene or generate one with AI.
+    Give your story a title and either write your own opening scene or generate
+    one with AI.
   </p>
 
   <div class="space-y-2">
@@ -141,9 +142,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <FileJson class="h-4 w-4 text-accent-400" />
-            <h4 class="font-medium text-foreground">
-              Imported Opening Scene
-            </h4>
+            <h4 class="font-medium text-foreground">Imported Opening Scene</h4>
           </div>
           <Button
             variant="ghost"
@@ -173,7 +172,9 @@
               {#each cardImportedAlternateGreetings as _, i}
                 <Button
                   size="sm"
-                  variant={selectedGreetingIndex === i + 1 ? "default" : "secondary"}
+                  variant={selectedGreetingIndex === i + 1
+                    ? "default"
+                    : "secondary"}
                   class="h-7 text-xs"
                   onclick={() => onSelectedGreetingChange(i + 1)}
                 >
@@ -200,21 +201,20 @@
             </ScrollArea.Root>
           </Card.Content>
         </Card.Root>
-        
+
         {#if (selectedGreetingIndex === 0 ? cardImportedFirstMessage : cardImportedAlternateGreetings[selectedGreetingIndex - 1])?.includes("{{user}}")}
           <p class="text-xs text-muted-foreground flex items-center gap-1">
-            <Badge variant="outline" class="px-1 py-0.5 text-[10px] bg-primary/20 text-primary font-mono border-primary/30 rounded">
+            <Badge
+              variant="outline"
+              class="px-1 py-0.5 text-[10px] bg-primary/20 text-primary font-mono border-primary/30 rounded"
+            >
               {"{{user}}"}
             </Badge>
             will be replaced with your character's name
           </p>
         {/if}
 
-        <Button
-          size="sm"
-          class="gap-2"
-          onclick={onUseCardOpening}
-        >
+        <Button size="sm" class="gap-2" onclick={onUseCardOpening}>
           <Check class="h-3 w-3" />
           Use This Opening
         </Button>
@@ -228,15 +228,13 @@
       <Card.Content class="p-4 space-y-3">
         <div class="flex items-center gap-2">
           <Feather class="h-4 w-4 text-secondary-400" />
-          <h4 class="font-medium text-foreground">
-            Opening Scene Guidance
-          </h4>
+          <h4 class="font-medium text-foreground">Opening Scene Guidance</h4>
           <span class="text-xs text-muted-foreground">(Optional)</span>
         </div>
         <p class="text-sm text-muted-foreground">
-          As the author, describe what you want to happen in the opening
-          scene. Include setting details, character positions, mood, or
-          specific events.
+          As the author, describe what you want to happen in the opening scene.
+          Include setting details, character positions, mood, or specific
+          events.
         </p>
         <Textarea
           value={openingGuidance}
@@ -257,7 +255,7 @@
         <p class="text-sm text-muted-foreground">
           Write your own opening scene or generate one with AI
         </p>
-        
+
         <!-- Manual Text Entry -->
         <div class="space-y-2">
           <Label>Write Your Own Opening</Label>
@@ -267,16 +265,16 @@
             placeholder="Write the opening scene of your story here... Describe the setting, introduce your character, set the mood. This will be the first entry in your adventure."
             class="min-h-[140px] resize-y text-sm"
             rows={6}
-            disabled={isGeneratingOpening || isRefiningOpening || generatedOpening !== null}
+            disabled={isGeneratingOpening ||
+              isRefiningOpening ||
+              generatedOpening !== null}
           />
           {#if generatedOpening}
             <p class="text-xs text-amber-400">
               AI-generated opening active. Clear it below to write your own.
             </p>
           {:else if manualOpeningText.trim()}
-            <p class="text-xs text-green-400">
-              ✓ Custom opening ready
-            </p>
+            <p class="text-xs text-green-400">✓ Custom opening ready</p>
           {/if}
         </div>
 
@@ -326,8 +324,8 @@
       </Card.Content>
     </Card.Root>
   {:else}
-    <p class="text-sm text-muted-foreground">
-      Enter a title to continue
+    <p class="text-sm text-muted-foreground -mt-3">
+      Enter a title to continue*
     </p>
   {/if}
 
@@ -375,17 +373,13 @@
         </div>
         {#if isEditingOpening}
           <Textarea
-            value={openingDraft ?? ''}
+            value={openingDraft ?? ""}
             oninput={(e) => onDraftChange(e.currentTarget.value)}
             class="min-h-[140px] resize-y text-sm"
             rows={6}
           />
           <div class="flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onclick={onCancelEdit}
-            >
+            <Button variant="secondary" size="sm" onclick={onCancelEdit}>
               Cancel
             </Button>
             <Button
@@ -398,11 +392,11 @@
           </div>
         {:else}
           <ScrollArea.Root class="h-64">
-             <div class="prose prose-invert prose-sm max-w-none">
-               <p class="text-muted-foreground whitespace-pre-wrap">
-                 {generatedOpening?.scene || ""}
-               </p>
-             </div>
+            <div class="prose prose-invert prose-sm max-w-none">
+              <p class="text-muted-foreground whitespace-pre-wrap">
+                {generatedOpening?.scene || ""}
+              </p>
+            </div>
           </ScrollArea.Root>
         {/if}
       </Card.Content>
@@ -416,9 +410,7 @@
       <div class="grid grid-cols-2 gap-2 text-muted-foreground">
         <div>
           <strong class="text-foreground">Mode:</strong>
-          {selectedMode === "adventure"
-            ? "Adventure"
-            : "Creative Writing"}
+          {selectedMode === "adventure" ? "Adventure" : "Creative Writing"}
         </div>
         <div>
           <strong class="text-foreground">Genre:</strong>

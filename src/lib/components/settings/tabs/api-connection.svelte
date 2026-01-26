@@ -71,6 +71,11 @@
   ];
 
   function startEdit(profile: APIProfile) {
+    if (editingProfileId && editingProfileId !== profile.id && !isNewProfile) {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      autoSaveEdit();
+    }
+
     editingProfileId = profile.id;
     isNewProfile = false;
     formName = profile.name;
@@ -205,13 +210,18 @@
     }
   }
 
-  function toggleCollapsible(profileId: string) {
-    if (openCollapsibles.has(profileId)) {
-      openCollapsibles = new Set(
-        Array.from(openCollapsibles).filter((id) => id !== profileId),
-      );
+  function handleOpenChange(open: boolean, profile: APIProfile) {
+    if (open) {
+      startEdit(profile);
     } else {
-      openCollapsibles = new Set([...openCollapsibles, profileId]);
+      openCollapsibles.delete(profile.id);
+      openCollapsibles = new Set(openCollapsibles);
+
+      if (editingProfileId === profile.id) {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        autoSaveEdit();
+        editingProfileId = null;
+      }
     }
   }
 
@@ -457,15 +467,7 @@
       >
         <Collapsible.Root
           open={isProfileOpen(profile.id)}
-          onOpenChange={(open) => {
-            if (open) {
-              openCollapsibles = new Set([...openCollapsibles, profile.id]);
-            } else {
-              openCollapsibles = new Set(
-                Array.from(openCollapsibles).filter((id) => id !== profile.id),
-              );
-            }
-          }}
+          onOpenChange={(open) => handleOpenChange(open, profile)}
         >
           <div class="flex items-center p-3 pl-4 gap-3">
             <Collapsible.Trigger

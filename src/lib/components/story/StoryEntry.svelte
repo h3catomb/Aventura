@@ -55,8 +55,7 @@
 
   // Check if reasoning is enabled in API settings
   const isReasoningEnabled = $derived(
-    settings.apiSettings.reasoningEffort !== "off" &&
-      settings.apiSettings.enableThinking,
+    settings.apiSettings.reasoningEffort !== "off",
   );
 
   // TTS generation state

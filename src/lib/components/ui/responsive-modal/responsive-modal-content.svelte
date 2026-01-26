@@ -10,7 +10,7 @@
 
  {#if isMobile.current}
 	<Drawer.Content
-        class={cn("max-h-[85vh] h-auto p-0 pb-[env(safe-area-inset-bottom)]", className)}
+        class={cn("max-h-[85vh] h-auto p-0 mb-[env(safe-area-inset-bottom)]", className)}
         {...props}
     >
 		{@render children?.()}
