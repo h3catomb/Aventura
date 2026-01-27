@@ -33,10 +33,12 @@
   import {
     eventBus,
     type ImageReadyEvent,
+    type ImageAnalysisFailedEvent,
     type TTSQueuedEvent,
   } from "$lib/services/events";
   import { NanoGPTImageProvider } from "$lib/services/ai/image/providers/NanoGPTProvider";
   import { ChutesImageProvider } from "$lib/services/ai/image/providers/ChutesProvider";
+  import { ImageGenerationService } from "$lib/services/ai/image/ImageGenerationService";
   import { promptService } from "$lib/services/prompts";
   import { onMount } from "svelte";
   import ReasoningBlock from "./ReasoningBlock.svelte";
@@ -535,63 +537,11 @@
     const image = embeddedImages.find((img) => img.id === imageId);
     if (!image) return;
 
-    try {
-      // Update status to generating
-      await database.updateEmbeddedImage(imageId, {
-        status: "generating",
-        errorMessage: undefined,
-      });
+    // Use centralized retry logic from ImageGenerationService
+    await ImageGenerationService.retryImageGeneration(imageId, prompt);
 
-      // Reload images to show generating state
-      await loadEmbeddedImages();
-
-      // Get image settings
-      const imageSettings = settings.systemServicesSettings.imageGeneration;
-      const apiKey =
-        imageSettings.imageProvider === "chutes"
-          ? imageSettings.chutesApiKey
-          : imageSettings.nanoGptApiKey;
-
-      if (!apiKey) {
-        throw new Error("No API key configured");
-      }
-
-      // Create provider
-      const provider =
-        imageSettings.imageProvider === "chutes"
-          ? new ChutesImageProvider(apiKey, false)
-          : new NanoGPTImageProvider(apiKey, false);
-
-      // Generate new image
-      const response = await provider.generateImage({
-        prompt,
-        model: image.model || imageSettings.model,
-        size: imageSettings.size,
-        response_format: "b64_json",
-      });
-
-      if (response.images.length === 0 || !response.images[0].b64_json) {
-        throw new Error("No image data returned");
-      }
-
-      // Update with new image data
-      await database.updateEmbeddedImage(imageId, {
-        imageData: response.images[0].b64_json,
-        prompt,
-        status: "complete",
-      });
-
-      // Reload to show new image
-      await loadEmbeddedImages();
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Regeneration failed";
-      await database.updateEmbeddedImage(imageId, {
-        status: "failed",
-        errorMessage,
-      });
-      await loadEmbeddedImages();
-    }
+    // Reload images to show updated state
+    await loadEmbeddedImages();
   }
 
   // Handle edit modal submission
@@ -720,6 +670,16 @@
       },
     );
 
+    // Subscribe to ImageAnalysisFailed events to show error toast
+    const unsubImageAnalysisFailed = eventBus.subscribe<ImageAnalysisFailedEvent>(
+      "ImageAnalysisFailed",
+      (event) => {
+        if (event.entryId === entry.id) {
+          ui.showToast(`Image generation failed: ${event.error}`, "error", 10000);
+        }
+      },
+    );
+
     // Subscribe to TTSQueued events to auto-play TTS when triggered from ActionInput
     const unsubTTSQueued = eventBus.subscribe<TTSQueuedEvent>(
       "TTSQueued",
@@ -742,6 +702,7 @@
 
     return () => {
       unsubImageReady();
+      unsubImageAnalysisFailed();
       unsubTTSQueued();
     };
   });
