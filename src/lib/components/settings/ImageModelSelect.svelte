@@ -51,6 +51,12 @@
 		filterFunc ? models.filter(filterFunc) : models
 	);
 
+	// Get label for current selection
+	const selectedModel = $derived(models.find((m) => m.id === selectedModelId));
+	const selectedLabel = $derived(
+		selectedModel ? getModelLabel(selectedModel) : placeholder
+	);
+
 	// Format cost as "images per day" (1 pollen = 1000 credits, daily allowance)
 	function formatCost(model: ImageModelInfo): string {
 		if (!model.costPerImage) return '';
@@ -120,7 +126,7 @@
 					{disabled}
 				>
 					<Select.Trigger class="w-full">
-						<Select.Value {placeholder} />
+						{selectedLabel}
 					</Select.Trigger>
 					<Select.Content>
 						{#each filteredModels as model (model.id)}
