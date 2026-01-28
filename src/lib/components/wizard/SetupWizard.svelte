@@ -30,11 +30,24 @@
   // Check if API key is configured
   const needsApiKey = $derived(settings.needsApiKey);
   
-  // Check if image generation is enabled
-  const imageGenerationEnabled = $derived(
-    settings.systemServicesSettings.imageGeneration.enabled &&
-      !!settings.systemServicesSettings.imageGeneration.nanoGptApiKey,
-  );
+  // Check if image generation is enabled and configured
+  const imageGenerationEnabled = $derived.by(() => {
+    const imgSettings = settings.systemServicesSettings.imageGeneration;
+    if (!imgSettings.enabled) return false;
+
+    // Check if the selected provider has an API key configured
+    switch (imgSettings.imageProvider) {
+      case 'nanogpt':
+        return !!imgSettings.nanoGptApiKey;
+      case 'chutes':
+        return !!imgSettings.chutesApiKey;
+      case 'pollinations':
+        // Pollinations works without API key (key is optional for premium features)
+        return true;
+      default:
+        return false;
+    }
+  });
   
   // Step Titles
   const stepTitles = [
@@ -264,6 +277,7 @@
           selectedTense={wizard.narrative.selectedTense}
           tone={wizard.narrative.tone}
           visualProseMode={wizard.narrative.visualProseMode}
+          {imageGenerationEnabled}
           onPOVChange={(v) => (wizard.narrative.selectedPOV = v)}
           onTenseChange={(v) => (wizard.narrative.selectedTense = v)}
           onToneChange={(v) => (wizard.narrative.tone = v)}

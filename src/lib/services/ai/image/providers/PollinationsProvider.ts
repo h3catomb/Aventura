@@ -372,6 +372,14 @@ export class PollinationsImageProvider implements ImageProvider {
 		}
 	}
 
+	/**
+	 * Clear the models cache to force a fresh fetch
+	 */
+	static clearModelsCache(): void {
+		PollinationsImageProvider.modelsCache = null;
+		PollinationsImageProvider.modelsCacheTime = 0;
+	}
+
 	private getFallbackModels(): ImageModelInfo[] {
 		return [
 			{

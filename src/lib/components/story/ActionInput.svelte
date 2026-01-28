@@ -54,11 +54,21 @@
       !!lastImageGenContext,
   );
 
-  const manualImageGenDisabled = $derived(
-    ui.isGenerating ||
-      isManualImageGenRunning ||
-      !settings.systemServicesSettings.imageGeneration.nanoGptApiKey,
-  );
+  const manualImageGenDisabled = $derived.by(() => {
+    if (ui.isGenerating || isManualImageGenRunning) return true;
+
+    const imgSettings = settings.systemServicesSettings.imageGeneration;
+    switch (imgSettings.imageProvider) {
+      case 'nanogpt':
+        return !imgSettings.nanoGptApiKey;
+      case 'chutes':
+        return !imgSettings.chutesApiKey;
+      case 'pollinations':
+        return false; // Pollinations works without API key
+      default:
+        return true;
+    }
+  });
 
   // In creative writing mode, show different input style
   const isCreativeMode = $derived(story.storyMode === "creative-writing");

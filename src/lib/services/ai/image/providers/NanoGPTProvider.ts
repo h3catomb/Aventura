@@ -12,6 +12,7 @@ import type {
   ImageModelInfo,
 } from './base';
 import { ImageGenerationError } from './base';
+import { createLogger } from '../../core/config';
 
 const NANOGPT_BASE_URL = 'https://nano-gpt.com';
 const NANOGPT_API_V1 = `${NANOGPT_BASE_URL}/api/v1`;
@@ -25,8 +26,14 @@ export class NanoGPTImageProvider implements ImageProvider {
   id = 'nanogpt';
   name = 'NanoGPT';
 
+  // Cache for models list (avoid repeated API calls across instances)
+  private static modelsCache: ImageModelInfo[] | null = null;
+  private static modelsCacheTime = 0;
+  private static readonly MODELS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
   private apiKey: string;
   private debug: boolean;
+  private log = createLogger('NanoGPT');
 
   constructor(apiKey: string, debug = false) {
     this.apiKey = apiKey;
@@ -110,36 +117,87 @@ export class NanoGPTImageProvider implements ImageProvider {
   }
 
   async listModels(): Promise<ImageModelInfo[]> {
+    // Return cached models if still valid
+    const now = Date.now();
+    if (NanoGPTImageProvider.modelsCache && (now - NanoGPTImageProvider.modelsCacheTime) < NanoGPTImageProvider.MODELS_CACHE_TTL) {
+      return NanoGPTImageProvider.modelsCache;
+    }
+
     try {
       const response = await fetch(NANOGPT_MODELS_ENDPOINT);
 
       if (!response.ok) {
-        console.warn('[NanoGPT] Failed to fetch models, using fallback');
+        this.log('Failed to fetch models, using fallback');
         return this.getFallbackModels();
       }
 
       const data = await response.json();
 
-      // NanoGPT returns models at data.models.images
-      const imageModels = data?.models?.images || [];
+      // NanoGPT returns models at data.models.image (NOT images)
+      const imageModels = data?.models?.image || {};
 
-      if (!Array.isArray(imageModels) || imageModels.length === 0) {
-        console.warn('[NanoGPT] No image models found in response, using fallback');
+      // Convert object to array (NanoGPT returns object keyed by model ID)
+      const modelEntries = Object.values(imageModels) as Array<{
+        name?: string;
+        model?: string;
+        description?: string;
+        cost?: Record<string, number>;
+        resolutions?: Array<{ value: string; comment?: string }>;
+        tags?: string[];
+      }>;
+
+      if (modelEntries.length === 0) {
+        this.log('No image models found in response, using fallback');
         return this.getFallbackModels();
       }
 
-      return imageModels.map((model: any) => ({
-        id: model.id || model.model || model.name,
-        name: model.name || model.id || model.model,
-        description: model.description,
-        supportsSizes: model.sizes || ['512x512', '1024x1024'],
-        supportsImg2Img: model.supportsImg2Img ?? false,
-        costPerImage: model.cost ?? model.costPerImage,
-      }));
+      const models: ImageModelInfo[] = modelEntries.map((model) => {
+        // Extract supported sizes from resolutions
+        const supportsSizes = model.resolutions?.map(r => {
+          // Convert "1024*1024" format to "1024x1024"
+          return r.value.replace('*', 'x');
+        }) || ['512x512', '1024x1024'];
+
+        // Check if model supports image-to-image via tags
+        const supportsImg2Img = model.tags?.includes('image-to-image') ||
+                                model.tags?.includes('image-edit') || false;
+
+        // Calculate average cost from cost object (e.g., { "1024x1024": 0.01, "512x512": 0.005 })
+        let costPerImage: number | undefined;
+        if (model.cost && typeof model.cost === 'object') {
+          const costs = Object.values(model.cost).filter(c => typeof c === 'number');
+          if (costs.length > 0) {
+            costPerImage = costs.reduce((sum, c) => sum + c, 0) / costs.length;
+          }
+        }
+
+        return {
+          id: model.model || model.name || '',
+          name: model.name || model.model || '',
+          description: model.description,
+          supportsSizes,
+          supportsImg2Img,
+          costPerImage,
+        };
+      });
+
+      // Update cache
+      NanoGPTImageProvider.modelsCache = models;
+      NanoGPTImageProvider.modelsCacheTime = now;
+
+      return models;
     } catch (error) {
-      console.warn('[NanoGPT] Error fetching models:', error);
+      this.log('Error fetching models:', error);
       return this.getFallbackModels();
     }
+  }
+
+  /**
+   * Clear the models cache to force a fresh fetch
+   */
+  static clearModelsCache(): void {
+    NanoGPTImageProvider.modelsCache = null;
+    NanoGPTImageProvider.modelsCacheTime = 0;
   }
 
   async validateCredentials(): Promise<boolean> {

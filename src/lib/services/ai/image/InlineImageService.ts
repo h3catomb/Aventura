@@ -54,6 +54,10 @@ export class InlineImageGenerationService {
     if (provider === 'chutes') {
       return !!imageSettings.chutesApiKey;
     }
+    if (provider === 'pollinations') {
+      // Pollinations works without API key (key is optional for premium features)
+      return true;
+    }
     return !!imageSettings.nanoGptApiKey;
   }
 

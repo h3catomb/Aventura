@@ -74,7 +74,8 @@ export class ImageGenerationService {
       return !!imageSettings.chutesApiKey;
     }
     if (provider === 'pollinations') {
-      return !!imageSettings.pollinationsApiKey;
+      // Pollinations works without API key (key is optional for premium features)
+      return true;
     }
     return !!imageSettings.nanoGptApiKey;
   }
@@ -121,6 +122,19 @@ export class ImageGenerationService {
     } catch (error) {
       log(`Failed to list models for provider ${providerId}:`, error);
       return [];
+    }
+  }
+
+  /**
+   * Clear the models cache for a provider to force a fresh fetch.
+   */
+  static clearModelsCache(providerId: string): void {
+    if (providerId === 'nanogpt') {
+      NanoGPTImageProvider.clearModelsCache();
+    } else if (providerId === 'chutes') {
+      ChutesImageProvider.clearModelsCache();
+    } else if (providerId === 'pollinations') {
+      PollinationsImageProvider.clearModelsCache();
     }
   }
 

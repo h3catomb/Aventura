@@ -30,6 +30,16 @@
     { value: "2048x2048", label: "2048x2048 (Highest Quality)" },
   ] as const;
 
+  // NanoGPT models state
+  let nanoGptModels = $state<ImageModelInfo[]>([]);
+  let isLoadingNanoGptModels = $state(false);
+  let nanoGptModelsError = $state<string | null>(null);
+
+  // Chutes models state
+  let chutesModels = $state<ImageModelInfo[]>([]);
+  let isLoadingChutesModels = $state(false);
+  let chutesModelsError = $state<string | null>(null);
+
   // Pollinations models state
   let pollinationsModels = $state<ImageModelInfo[]>([]);
   let isLoadingPollinationsModels = $state(false);
@@ -42,71 +52,162 @@
     ),
   );
 
-  // Img2img models
+  // Img2img models for each provider
   const pollinationsImg2ImgModels = $derived(
     filteredPollinationsModels.filter((m) => m.supportsImg2Img),
   );
+  const nanoGptImg2ImgModels = $derived(
+    nanoGptModels.filter((m) => m.supportsImg2Img),
+  );
+  const chutesImg2ImgModels = $derived(
+    chutesModels.filter((m) => m.supportsImg2Img),
+  );
 
-  async function loadPollinationsModels() {
-    const apiKey =
-      settings.systemServicesSettings.imageGeneration.pollinationsApiKey;
+  // Load functions for each provider
+  async function loadNanoGptModels(forceRefresh = false) {
+    if (forceRefresh) {
+      ImageGenerationService.clearModelsCache("nanogpt");
+    }
+    const apiKey = settings.systemServicesSettings.imageGeneration.nanoGptApiKey;
+    isLoadingNanoGptModels = true;
+    nanoGptModelsError = null;
+
+    try {
+      nanoGptModels = await ImageGenerationService.listModels("nanogpt", apiKey);
+    } catch (error) {
+      nanoGptModelsError = error instanceof Error ? error.message : "Failed to load models";
+    } finally {
+      isLoadingNanoGptModels = false;
+    }
+  }
+
+  async function loadChutesModels(forceRefresh = false) {
+    if (forceRefresh) {
+      ImageGenerationService.clearModelsCache("chutes");
+    }
+    const apiKey = settings.systemServicesSettings.imageGeneration.chutesApiKey;
+    isLoadingChutesModels = true;
+    chutesModelsError = null;
+
+    try {
+      chutesModels = await ImageGenerationService.listModels("chutes", apiKey);
+    } catch (error) {
+      chutesModelsError = error instanceof Error ? error.message : "Failed to load models";
+    } finally {
+      isLoadingChutesModels = false;
+    }
+  }
+
+  async function loadPollinationsModels(forceRefresh = false) {
+    if (forceRefresh) {
+      ImageGenerationService.clearModelsCache("pollinations");
+    }
+    const apiKey = settings.systemServicesSettings.imageGeneration.pollinationsApiKey;
     isLoadingPollinationsModels = true;
     pollinationsModelsError = null;
 
     try {
-      // Use service to list models
-      pollinationsModels = await ImageGenerationService.listModels(
-        "pollinations",
-        apiKey,
-      );
+      pollinationsModels = await ImageGenerationService.listModels("pollinations", apiKey);
     } catch (error) {
-      pollinationsModelsError =
-        error instanceof Error ? error.message : "Failed to load models";
+      pollinationsModelsError = error instanceof Error ? error.message : "Failed to load models";
     } finally {
       isLoadingPollinationsModels = false;
     }
   }
 
-  // Auto-load/validate when Pollinations selected or API key changes
+  // Load models on first access (when provider selected and models not yet loaded)
   $effect(() => {
-    const isPollinations =
-      settings.systemServicesSettings.imageGeneration.imageProvider ===
-      "pollinations";
-    const apiKey =
-      settings.systemServicesSettings.imageGeneration.pollinationsApiKey;
+    const provider = settings.systemServicesSettings.imageGeneration.imageProvider ?? "nanogpt";
 
-    if (isPollinations) {
+    if (provider === "nanogpt" && nanoGptModels.length === 0 && !isLoadingNanoGptModels) {
+      loadNanoGptModels();
+    } else if (provider === "chutes" && chutesModels.length === 0 && !isLoadingChutesModels) {
+      loadChutesModels();
+    } else if (provider === "pollinations" && pollinationsModels.length === 0 && !isLoadingPollinationsModels) {
       loadPollinationsModels();
     }
   });
 
-  // Validate selected model exists (only if models are loaded)
+  // Validate selected model exists for Pollinations (only if models are loaded)
   $effect(() => {
     if (
-      settings.systemServicesSettings.imageGeneration.imageProvider !==
-        "pollinations" ||
+      settings.systemServicesSettings.imageGeneration.imageProvider !== "pollinations" ||
       filteredPollinationsModels.length === 0
     )
       return;
 
     const currentModel = settings.systemServicesSettings.imageGeneration.model;
-    const modelExists = filteredPollinationsModels.some(
-      (m) => m.id === currentModel,
-    );
+    const modelExists = filteredPollinationsModels.some((m) => m.id === currentModel);
 
     if (!modelExists && !isLoadingPollinationsModels) {
-      const zimageModel = filteredPollinationsModels.find(
-        (m) => m.id === POLLINATIONS_DEFAULT_MODEL_ID,
-      );
+      const zimageModel = filteredPollinationsModels.find((m) => m.id === POLLINATIONS_DEFAULT_MODEL_ID);
       settings.systemServicesSettings.imageGeneration.model = zimageModel
         ? POLLINATIONS_DEFAULT_MODEL_ID
         : filteredPollinationsModels[0].id;
       settings.saveSystemServicesSettings();
     }
   });
+
+  // Validate selected model exists for NanoGPT (only if models are loaded)
+  $effect(() => {
+    if (
+      settings.systemServicesSettings.imageGeneration.imageProvider !== "nanogpt" ||
+      nanoGptModels.length === 0
+    )
+      return;
+
+    const currentModel = settings.systemServicesSettings.imageGeneration.model;
+    const modelExists = nanoGptModels.some((m) => m.id === currentModel);
+
+    if (!modelExists && !isLoadingNanoGptModels) {
+      const defaultModel = nanoGptModels.find((m) => m.id === "z-image-turbo");
+      settings.systemServicesSettings.imageGeneration.model = defaultModel
+        ? "z-image-turbo"
+        : nanoGptModels[0].id;
+      settings.saveSystemServicesSettings();
+    }
+  });
+
+  // Validate selected model exists for Chutes (only if models are loaded)
+  $effect(() => {
+    if (
+      settings.systemServicesSettings.imageGeneration.imageProvider !== "chutes" ||
+      chutesModels.length === 0
+    )
+      return;
+
+    const currentModel = settings.systemServicesSettings.imageGeneration.model;
+    const modelExists = chutesModels.some((m) => m.id === currentModel);
+
+    if (!modelExists && !isLoadingChutesModels) {
+      const defaultModel = chutesModels.find((m) => m.id === "z-image-turbo");
+      settings.systemServicesSettings.imageGeneration.model = defaultModel
+        ? "z-image-turbo"
+        : chutesModels[0].id;
+      settings.saveSystemServicesSettings();
+    }
+  });
 </script>
 
 <div class="space-y-4">
+  <!-- Enable Image Generation Toggle -->
+  <div class="flex items-center justify-between">
+    <div>
+      <Label>Enable Image Generation</Label>
+      <p class="text-xs text-muted-foreground">
+        Enable AI-powered image generation for stories and portraits.
+      </p>
+    </div>
+    <Switch
+      checked={settings.systemServicesSettings.imageGeneration.enabled}
+      onCheckedChange={(v) => {
+        settings.systemServicesSettings.imageGeneration.enabled = v;
+        settings.saveSystemServicesSettings();
+      }}
+    />
+  </div>
+
+  {#if settings.systemServicesSettings.imageGeneration.enabled}
   <!-- Image Provider Selection -->
   <div>
     <Label class="mb-2 block">Image Provider</Label>
@@ -243,31 +344,50 @@
       {#if settings.systemServicesSettings.imageGeneration.imageProvider === "pollinations"}
         <ImageModelSelect
           models={filteredPollinationsModels}
-          selectedModelId={settings.systemServicesSettings.imageGeneration
-            .model}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.model}
           onModelChange={(id) => {
             settings.systemServicesSettings.imageGeneration.model = id;
             settings.saveSystemServicesSettings();
           }}
           showCost={true}
           showImg2ImgIndicator={true}
-          showDescription={true}
+          showDescription={false}
           isLoading={isLoadingPollinationsModels}
           errorMessage={pollinationsModelsError}
           showRefreshButton={true}
-          onRefresh={loadPollinationsModels}
+          onRefresh={() => loadPollinationsModels(true)}
         />
-      {:else}
-        <Input
-          type="text"
-          class="w-full"
-          value={settings.systemServicesSettings.imageGeneration.model}
-          oninput={(e) => {
-            settings.systemServicesSettings.imageGeneration.model =
-              e.currentTarget.value;
+      {:else if settings.systemServicesSettings.imageGeneration.imageProvider === "nanogpt"}
+        <ImageModelSelect
+          models={nanoGptModels}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.model}
+          onModelChange={(id) => {
+            settings.systemServicesSettings.imageGeneration.model = id;
             settings.saveSystemServicesSettings();
           }}
-          placeholder="z-image-turbo"
+          showCost={true}
+          showImg2ImgIndicator={true}
+          showDescription={false}
+          isLoading={isLoadingNanoGptModels}
+          errorMessage={nanoGptModelsError}
+          showRefreshButton={true}
+          onRefresh={() => loadNanoGptModels(true)}
+        />
+      {:else if settings.systemServicesSettings.imageGeneration.imageProvider === "chutes"}
+        <ImageModelSelect
+          models={chutesModels}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.model}
+          onModelChange={(id) => {
+            settings.systemServicesSettings.imageGeneration.model = id;
+            settings.saveSystemServicesSettings();
+          }}
+          showCost={false}
+          showImg2ImgIndicator={true}
+          showDescription={false}
+          isLoading={isLoadingChutesModels}
+          errorMessage={chutesModelsError}
+          showRefreshButton={true}
+          onRefresh={() => loadChutesModels(true)}
         />
       {/if}
       <p class="mt-1 text-xs text-muted-foreground">
@@ -388,8 +508,7 @@
       {#if settings.systemServicesSettings.imageGeneration.imageProvider === "pollinations"}
         <ImageModelSelect
           models={filteredPollinationsModels}
-          selectedModelId={settings.systemServicesSettings.imageGeneration
-            .portraitModel}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.portraitModel}
           onModelChange={(id) => {
             settings.systemServicesSettings.imageGeneration.portraitModel = id;
             settings.saveSystemServicesSettings();
@@ -399,19 +518,37 @@
           isLoading={isLoadingPollinationsModels}
           errorMessage={pollinationsModelsError}
           showRefreshButton={true}
-          onRefresh={loadPollinationsModels}
+          onRefresh={() => loadPollinationsModels(true)}
         />
-      {:else}
-        <Input
-          type="text"
-          class="w-full"
-          value={settings.systemServicesSettings.imageGeneration.portraitModel}
-          oninput={(e) => {
-            settings.systemServicesSettings.imageGeneration.portraitModel =
-              e.currentTarget.value;
+      {:else if settings.systemServicesSettings.imageGeneration.imageProvider === "nanogpt"}
+        <ImageModelSelect
+          models={nanoGptModels}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.portraitModel}
+          onModelChange={(id) => {
+            settings.systemServicesSettings.imageGeneration.portraitModel = id;
             settings.saveSystemServicesSettings();
           }}
-          placeholder="z-image-turbo"
+          showCost={true}
+          showImg2ImgIndicator={true}
+          isLoading={isLoadingNanoGptModels}
+          errorMessage={nanoGptModelsError}
+          showRefreshButton={true}
+          onRefresh={() => loadNanoGptModels(true)}
+        />
+      {:else if settings.systemServicesSettings.imageGeneration.imageProvider === "chutes"}
+        <ImageModelSelect
+          models={chutesModels}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.portraitModel}
+          onModelChange={(id) => {
+            settings.systemServicesSettings.imageGeneration.portraitModel = id;
+            settings.saveSystemServicesSettings();
+          }}
+          showCost={false}
+          showImg2ImgIndicator={true}
+          isLoading={isLoadingChutesModels}
+          errorMessage={chutesModelsError}
+          showRefreshButton={true}
+          onRefresh={() => loadChutesModels(true)}
         />
       {/if}
       <p class="mt-1 text-xs text-muted-foreground">
@@ -425,8 +562,7 @@
       {#if settings.systemServicesSettings.imageGeneration.imageProvider === "pollinations"}
         <ImageModelSelect
           models={pollinationsImg2ImgModels}
-          selectedModelId={settings.systemServicesSettings.imageGeneration
-            .referenceModel}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.referenceModel}
           onModelChange={(id) => {
             settings.systemServicesSettings.imageGeneration.referenceModel = id;
             settings.saveSystemServicesSettings();
@@ -436,19 +572,37 @@
           isLoading={isLoadingPollinationsModels}
           errorMessage={pollinationsModelsError}
           showRefreshButton={true}
-          onRefresh={loadPollinationsModels}
+          onRefresh={() => loadPollinationsModels(true)}
         />
-      {:else}
-        <Input
-          type="text"
-          class="w-full"
-          value={settings.systemServicesSettings.imageGeneration.referenceModel}
-          oninput={(e) => {
-            settings.systemServicesSettings.imageGeneration.referenceModel =
-              e.currentTarget.value;
+      {:else if settings.systemServicesSettings.imageGeneration.imageProvider === "nanogpt"}
+        <ImageModelSelect
+          models={nanoGptImg2ImgModels}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.referenceModel}
+          onModelChange={(id) => {
+            settings.systemServicesSettings.imageGeneration.referenceModel = id;
             settings.saveSystemServicesSettings();
           }}
-          placeholder="qwen-image"
+          showCost={true}
+          showImg2ImgIndicator={false}
+          isLoading={isLoadingNanoGptModels}
+          errorMessage={nanoGptModelsError}
+          showRefreshButton={true}
+          onRefresh={() => loadNanoGptModels(true)}
+        />
+      {:else if settings.systemServicesSettings.imageGeneration.imageProvider === "chutes"}
+        <ImageModelSelect
+          models={chutesImg2ImgModels}
+          selectedModelId={settings.systemServicesSettings.imageGeneration.referenceModel}
+          onModelChange={(id) => {
+            settings.systemServicesSettings.imageGeneration.referenceModel = id;
+            settings.saveSystemServicesSettings();
+          }}
+          showCost={false}
+          showImg2ImgIndicator={false}
+          isLoading={isLoadingChutesModels}
+          errorMessage={chutesModelsError}
+          showRefreshButton={true}
+          onRefresh={() => loadChutesModels(true)}
         />
       {/if}
       <p class="mt-1 text-xs text-muted-foreground">
@@ -467,4 +621,5 @@
     <RotateCcw class="h-3 w-3 mr-1" />
     Reset to Defaults
   </Button>
+  {/if}
 </div>

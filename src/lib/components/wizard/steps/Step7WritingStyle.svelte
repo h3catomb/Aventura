@@ -13,6 +13,7 @@
     selectedTense: Tense;
     tone: string;
     visualProseMode: boolean;
+    imageGenerationEnabled: boolean;
     imageGenerationMode: "none" | "auto" | "inline";
     onPOVChange: (v: POV) => void;
     onTenseChange: (v: Tense) => void;
@@ -26,6 +27,7 @@
     selectedTense,
     tone,
     visualProseMode,
+    imageGenerationEnabled,
     imageGenerationMode,
     onPOVChange,
     onTenseChange,
@@ -33,6 +35,13 @@
     onVisualProseModeChange,
     onImageGenerationModeChange,
   }: Props = $props();
+
+  // Force "none" mode when image generation is disabled
+  $effect(() => {
+    if (!imageGenerationEnabled && imageGenerationMode !== "none") {
+      onImageGenerationModeChange("none");
+    }
+  });
 </script>
 
 <div class="flex h-full flex-col gap-4 p-1">
@@ -146,6 +155,7 @@
       </section>
 
       <!-- Visuals Configuration -->
+      {#if imageGenerationEnabled}
       <section class="space-y-2 pt-1">
         <Label class="flex items-center gap-2 text-base font-semibold">
           <Eye class="h-4 w-4" />
@@ -210,7 +220,11 @@
             </Label>
           </div>
         </RadioGroup.Root>
+      </section>
+      {/if}
 
+      <!-- Visual Prose Styling -->
+      <section class="space-y-2 pt-1">
         <div class="flex items-center space-x-2 py-4">
           <Switch
             id="visual-prose"

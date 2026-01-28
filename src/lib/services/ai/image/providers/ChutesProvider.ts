@@ -20,22 +20,32 @@ import type {
   ImageModelInfo,
 } from './base';
 import { ImageGenerationError } from './base';
+import { createLogger } from '../../core/config';
 
 // Default model for generation
 const DEFAULT_MODEL = 'z-image-turbo';
 
+// Chutes API endpoint for listing public chutes
+const CHUTES_API_ENDPOINT = 'https://api.chutes.ai/chutes/?include_public=true&limit=200';
+
 // Models that require reference images
-const MODELS_REQUIRING_REFERENCES = ['qwen-image-edit-2511'];
+const MODELS_REQUIRING_REFERENCES = ['qwen-image-edit-2511', 'Qwen-Image-Edit-2511', 'qwen-image-edit-2509'];
 
 // Models that support reference images (but don't require them)
-const MODELS_SUPPORTING_REFERENCES = ['qwen-image-edit-2511'];
+const MODELS_SUPPORTING_REFERENCES = ['qwen-image-edit-2511', 'Qwen-Image-Edit-2511', 'qwen-image-edit-2509', 'qwen-image'];
 
 export class ChutesImageProvider implements ImageProvider {
   id = 'chutes';
   name = 'Chutes';
 
+  // Cache for models list (avoid repeated API calls across instances)
+  private static modelsCache: ImageModelInfo[] | null = null;
+  private static modelsCacheTime = 0;
+  private static readonly MODELS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
   private apiKey: string;
   private debug: boolean;
+  private log = createLogger('Chutes');
 
   constructor(apiKey: string, debug = false) {
     this.apiKey = apiKey;
@@ -230,7 +240,117 @@ try {
   }
 
   async listModels(): Promise<ImageModelInfo[]> {
-    // Return known models - users can enter any model name manually
+    // Return cached models if still valid
+    const now = Date.now();
+    if (ChutesImageProvider.modelsCache && (now - ChutesImageProvider.modelsCacheTime) < ChutesImageProvider.MODELS_CACHE_TTL) {
+      return ChutesImageProvider.modelsCache;
+    }
+
+    try {
+      const response = await fetch(CHUTES_API_ENDPOINT, {
+        headers: this.apiKey ? {
+          'Authorization': `Bearer ${this.apiKey}`,
+        } : {},
+      });
+
+      if (!response.ok) {
+        this.log('Failed to fetch models, using fallback');
+        return this.getFallbackModels();
+      }
+
+      const data = await response.json();
+      const items = data.items || [];
+
+      // Filter for image generation models:
+      // 1. standard_template === 'diffusion' (dedicated image models)
+      // 2. OR name contains image-related keywords and has null template (custom image endpoints)
+      const imageModels = items.filter((item: {
+        standard_template?: string | null;
+        name?: string;
+        tagline?: string;
+      }) => {
+        if (item.standard_template === 'diffusion') return true;
+        // Also include custom image endpoints (null template with image-related names)
+        if (item.standard_template === null) {
+          const name = item.name?.toLowerCase() || '';
+          return name.includes('image') || name.includes('z-image');
+        }
+        return false;
+      });
+
+      if (imageModels.length === 0) {
+        this.log('No image models found in response, using fallback');
+        return this.getFallbackModels();
+      }
+
+      const models: ImageModelInfo[] = imageModels.map((item: {
+        name: string;
+        tagline?: string;
+        chute_id?: string;
+      }) => {
+        const name = item.name;
+        const nameLower = name.toLowerCase();
+
+        // Check if model supports image-to-image
+        const supportsImg2Img = nameLower.includes('edit') ||
+                                nameLower.includes('qwen-image') && !nameLower.includes('turbo');
+
+        return {
+          id: name,
+          name: this.formatModelName(name),
+          description: item.tagline || undefined,
+          supportsSizes: ['576x576', '1024x1024', '2048x2048'],
+          supportsImg2Img,
+        };
+      });
+
+      // Sort models: z-image-turbo first, then qwen models, then alphabetically
+      models.sort((a, b) => {
+        const aLower = a.id.toLowerCase();
+        const bLower = b.id.toLowerCase();
+        if (aLower === 'z-image-turbo') return -1;
+        if (bLower === 'z-image-turbo') return 1;
+        if (aLower.includes('qwen') && !bLower.includes('qwen')) return -1;
+        if (bLower.includes('qwen') && !aLower.includes('qwen')) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      // Update cache
+      ChutesImageProvider.modelsCache = models;
+      ChutesImageProvider.modelsCacheTime = now;
+
+      return models;
+    } catch (error) {
+      this.log('Error fetching models:', error);
+      return this.getFallbackModels();
+    }
+  }
+
+  /**
+   * Format model name for display (convert slug to readable name)
+   */
+  private formatModelName(name: string): string {
+    // Handle common patterns
+    if (name === 'z-image-turbo') return 'Z Image Turbo';
+    if (name.toLowerCase().includes('qwen-image-edit')) return 'Qwen Image Edit';
+    if (name === 'qwen-image') return 'Qwen Image';
+
+    // For other names, replace hyphens/underscores and capitalize
+    return name
+      .split(/[-_/]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  /**
+   * Clear the models cache to force a fresh fetch
+   */
+  static clearModelsCache(): void {
+    ChutesImageProvider.modelsCache = null;
+    ChutesImageProvider.modelsCacheTime = 0;
+  }
+
+  private getFallbackModels(): ImageModelInfo[] {
     return [
       {
         id: 'z-image-turbo',

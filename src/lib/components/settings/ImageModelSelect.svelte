@@ -57,7 +57,7 @@
 		selectedModel ? getModelLabel(selectedModel) : placeholder
 	);
 
-	// Format cost as "images per day" (1 pollen = 1000 credits, daily allowance)
+	// Format cost per image
 	function formatCost(model: ImageModelInfo): string {
 		if (!model.costPerImage) return '';
 
@@ -69,11 +69,14 @@
 			costPerTextToken * DEFAULT_AVG_PROMPT_TOKENS +
 			costPerImageToken * DEFAULT_AVG_IMAGE_TOKENS;
 
-		const imagesPerPollen = 1 / totalCost;
-
-		return imagesPerPollen >= 1000
-			? `${(imagesPerPollen / 1000).toFixed(1)}k/day`
-			: `${Math.round(imagesPerPollen)}/day`;
+		// Format cost with appropriate decimal places
+		if (totalCost < 0.001) {
+			return `$${totalCost.toFixed(4)}`;
+		} else if (totalCost < 0.01) {
+			return `$${totalCost.toFixed(3)}`;
+		} else {
+			return `$${totalCost.toFixed(2)}`;
+		}
 	}
 
 	// Generate label with optional cost and img2img indicator
