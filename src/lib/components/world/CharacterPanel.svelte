@@ -443,13 +443,15 @@
         {@const StatusIcon = getStatusIcon(character.status)}
         {@const isProtagonist = character.relationship === "self"}
         {@const isCollapsed = ui.isEntityCollapsed(character.id)}
-        {@const showDetails = hasDetails(character) && !isCollapsed}
         {@const isEditing = editingId === character.id}
 
         <div
           class={cn(
-            "group rounded-lg border border-border bg-card shadow-sm transition-all pl-3 pr-2 pt-3 pb-2",
-            isEditing ? "ring-1 ring-primary/20" : "",
+            "group rounded-lg border bg-card shadow-sm transition-all px-2.5 py-2",
+            isEditing && "ring-1 ring-primary/20 border-border",
+            !isEditing && character.status === "active" && "border-green-500/30",
+            !isEditing && character.status === "inactive" && "border-muted-foreground/20",
+            !isEditing && character.status === "deceased" && "border-destructive/30",
           )}
         >
           {#if isEditing}
@@ -654,12 +656,12 @@
           {:else}
             <!-- DISPLAY MODE -->
 
-            <!-- Row 1: Portrait + Name -->
-            <div class="flex items-start gap-3">
-              <!-- Portrait / Avatar -->
+            <!-- Header: Avatar + Name + Badge -->
+            <div class="flex items-start gap-2.5">
+              <!-- Avatar with status overlay -->
               {#if character.portrait}
                 <button
-                  class="shrink-0 focus:outline-none"
+                  class="shrink-0 focus:outline-none relative"
                   onclick={() =>
                     (expandedPortrait = {
                       src: normalizeImageDataUrl(character.portrait) ?? "",
@@ -667,91 +669,84 @@
                     })}
                 >
                   <Avatar.Root
-                    class="h-10 w-10 ring-1 ring-border transition-all hover:ring-2 hover:ring-primary"
+                    class={cn(
+                      "h-8 w-8 ring-2 transition-all hover:ring-primary",
+                      character.status === "active" && "ring-green-500/50",
+                      character.status === "inactive" && "ring-muted-foreground/30",
+                      character.status === "deceased" && "ring-destructive/50",
+                    )}
                   >
                     <Avatar.Image
                       src={normalizeImageDataUrl(character.portrait) ?? ""}
                       alt={character.name}
-                      class="object-cover"
+                      class={cn(
+                        "object-cover",
+                        character.status === "inactive" && "grayscale opacity-60",
+                        character.status === "deceased" && "grayscale",
+                      )}
                     />
                     <Avatar.Fallback
-                      class="bg-muted text-muted-foreground text-xs"
+                      class="bg-muted text-muted-foreground text-[10px]"
                     >
                       {character.name.slice(0, 2).toUpperCase()}
                     </Avatar.Fallback>
                   </Avatar.Root>
+                  {#if character.status === "deceased"}
+                    <div class="absolute inset-0 flex items-center justify-center rounded-full bg-destructive/20">
+                      <Skull class="h-4 w-4 text-destructive" />
+                    </div>
+                  {/if}
                 </button>
               {:else}
                 <div
                   class={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-1",
-                    getStatusBgColor(character.status),
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2",
+                    character.status === "active" && "bg-green-500/10 ring-green-500/50",
+                    character.status === "inactive" && "bg-muted ring-muted-foreground/30",
+                    character.status === "deceased" && "bg-destructive/10 ring-destructive/50",
                   )}
                 >
                   <StatusIcon
-                    class={cn("h-4 w-4", getStatusColor(character.status))}
+                    class={cn("h-3.5 w-3.5", getStatusColor(character.status))}
                   />
                 </div>
               {/if}
 
-              <!-- Name & Role -->
-              <div class="min-w-0 flex-1 pt-0.5">
-                <div class="flex items-center justify-between">
-                  <p
-                    class="font-medium leading-none text-foreground truncate pr-2"
+              <!-- Name & Badge -->
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
+                <span
+                  class={cn(
+                    "font-medium text-sm leading-tight",
+                    character.status === "active" && "text-foreground",
+                    character.status === "inactive" && "text-muted-foreground",
+                    character.status === "deceased" && "text-muted-foreground line-through",
+                  )}
+                >
+                  {character.translatedName ?? character.name}
+                </span>
+                {#if isProtagonist}
+                  <Badge
+                    variant="default"
+                    class="px-1.5 py-0 text-[10px] uppercase tracking-wide h-4 w-fit"
                   >
-                    {character.translatedName ?? character.name}
-                  </p>
-                  <div class="flex items-center">
-                    {#if !isProtagonist}
-                      <Button
-                        variant="text"
-                        size="icon"
-                        class="h-6 w-6 text-muted-foreground hover:text-amber-500 -my-1"
-                        onclick={() => beginSwap(character)}
-                        title="Make protagonist"
-                      >
-                        <Star class="h-3.5 w-3.5" />
-                      </Button>
-                    {/if}
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class="h-6 w-6 text-muted-foreground hover:text-foreground -my-1"
-                      onclick={() => startEdit(character)}
-                      title="Edit"
-                    >
-                      <Pencil class="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div class="mt-1.5 flex flex-wrap items-center gap-2">
-                  {#if isProtagonist}
-                    <Badge
-                      variant="default"
-                      class="px-1.5 py-0 text-[10px] uppercase tracking-wide h-4"
-                    >
-                      <Star class="mr-1 h-2.5 w-2.5" />
-                      Protagonist
-                    </Badge>
-                  {:else if character.relationship || character.translatedRelationship}
-                    <Badge
-                      variant="secondary"
-                      class="px-1.5 py-0 text-[10px] font-normal text-muted-foreground h-4"
-                    >
-                      {character.translatedRelationship ??
-                        character.relationship}
-                    </Badge>
-                  {/if}
-                </div>
+                    <Star class="mr-0.5 h-2.5 w-2.5" />
+                    You
+                  </Badge>
+                {:else if character.relationship || character.translatedRelationship}
+                  <Badge
+                    variant="secondary"
+                    class="px-1.5 py-0 text-[10px] font-normal text-muted-foreground h-4 w-fit"
+                  >
+                    {character.translatedRelationship ?? character.relationship}
+                  </Badge>
+                {/if}
               </div>
             </div>
 
-            <!-- Row 2: Actions (Only visible if needed or for extra actions) -->
+            <!-- Swap Protagonist UI -->
             {#if pendingProtagonistId === character.id}
-              <div class="mt-3 rounded-md border border-border bg-muted/40 p-3">
-                <p class="mb-2 text-xs text-muted-foreground">
+              <div class="mt-2 rounded-md border border-border bg-muted/40 p-2.5">
+                <p class="mb-1.5 text-xs text-muted-foreground">
                   New role for <span class="text-foreground font-medium"
                     >{currentProtagonistName}</span
                   >:
@@ -760,164 +755,129 @@
                   <Input
                     type="text"
                     bind:value={previousRelationshipLabel}
-                    placeholder="e.g., former protagonist, ally"
-                    class="h-8 text-xs flex-1"
+                    placeholder="e.g., ally, companion"
+                    class="h-7 text-xs flex-1"
                   />
                   <Button
                     size="sm"
-                    class="h-8 text-xs"
+                    class="h-7 text-xs px-3"
                     onclick={() => confirmSwap(character)}
                     disabled={!previousRelationshipLabel.trim()}
                   >
                     Swap
                   </Button>
-                </div>
-                {#if swapError}
-                  <p class="mt-1.5 text-xs text-destructive">{swapError}</p>
-                {/if}
-                <div class="mt-2 flex justify-end">
                   <Button
-                    variant="text"
+                    variant="ghost"
                     size="sm"
-                    class="h-6 text-xs"
+                    class="h-7 text-xs px-2"
                     onclick={cancelSwap}
                   >
-                    Cancel
+                    <X class="h-3.5 w-3.5" />
                   </Button>
                 </div>
+                {#if swapError}
+                  <p class="mt-1 text-xs text-destructive">{swapError}</p>
+                {/if}
               </div>
             {/if}
 
-            <!-- Details Section - Collapsible -->
-            {#if hasDetails(character)}
-              <div class="mt-3 border-t border-border pt-2">
-                <div class="flex flex-col gap-2">
-                  {#if character.traits.length > 0 || (character.translatedTraits && character.translatedTraits.length > 0)}
-                    <div class="flex flex-wrap gap-1">
-                      {#each character.translatedTraits ?? character.traits as trait}
-                        <span
-                          class="inline-flex items-center rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                        >
-                          {trait}
-                        </span>
-                      {/each}
-                    </div>
-                  {/if}
-                  {#if character.visualDescriptors.length > 0 || (character.translatedVisualDescriptors && character.translatedVisualDescriptors.length > 0)}
-                    <div class="flex flex-wrap gap-1">
-                      {#each character.translatedVisualDescriptors ?? character.visualDescriptors as descriptor}
-                        <span
-                          class="inline-flex items-center rounded-sm bg-pink-500/10 px-1.5 py-0.5 text-[10px] font-medium text-pink-600 dark:text-pink-400"
-                        >
-                          {descriptor}
-                        </span>
-                      {/each}
-                    </div>
-                  {/if}
-                  {#if character.description || character.translatedDescription}
-                    <div class="text-xs text-muted-foreground mt-1">
-                      {#if !isCollapsed}
-                        <p class="leading-relaxed">
-                          {character.translatedDescription ??
-                            character.description}
-                        </p>
-                      {:else}
-                        <button
-                          type="button"
-                          class="truncate cursor-pointer hover:text-foreground bg-transparent border-none p-0 text-left w-full"
-                          onclick={() => toggleCollapse(character.id)}
-                          onkeydown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              toggleCollapse(character.id);
-                            }
-                          }}
-                          aria-label="Toggle character description"
-                        >
-                          {character.translatedDescription ??
-                            character.description}
-                        </button>
-                      {/if}
-                    </div>
-                  {/if}
-                </div>
-
-                <!-- Footer Actions -->
-                <div class="flex items-center justify-between mt-1">
-                  {#if (character.description?.length ?? 0) > 45 || (character.translatedDescription?.length ?? 0) > 45}
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class="h-6 w-6 -ml-2 text-muted-foreground hover:text-foreground"
-                      onclick={() => toggleCollapse(character.id)}
-                      title={isCollapsed
-                        ? "Show full description"
-                        : "Hide description"}
-                    >
-                      <ChevronDown
-                        class={cn(
-                          "h-4 w-4 transition-transform duration-200",
-                          !isCollapsed ? "rotate-180" : "",
-                        )}
-                      />
-                    </Button>
-                  {:else}
-                    <div></div>
-                  {/if}
-
-                  <IconRow
-                    class="ml-auto"
-                    onDelete={!isProtagonist
-                      ? () => deleteCharacter(character)
-                      : undefined}
-                    showDelete={!isProtagonist}
-                  >
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class={cn(
-                        "h-6 w-6",
-                        savedToVaultId === character.id
-                          ? "text-green-500"
-                          : "text-muted-foreground hover:text-primary",
-                      )}
-                      onclick={() => saveCharacterToVault(character)}
-                      title="Save to vault"
-                    >
-                      <Archive class="h-3 w-3" />
-                    </Button>
-                  </IconRow>
-                </div>
+            <!-- Expanded Details -->
+            {#if !isCollapsed && hasDetails(character)}
+              <div class="mt-2 flex flex-col gap-1.5">
+                {#if character.traits.length > 0 || (character.translatedTraits && character.translatedTraits.length > 0)}
+                  <div class="flex flex-wrap gap-1">
+                    {#each character.translatedTraits ?? character.traits as trait}
+                      <span
+                        class="inline-flex items-center rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                      >
+                        {trait}
+                      </span>
+                    {/each}
+                  </div>
+                {/if}
+                {#if character.visualDescriptors.length > 0 || (character.translatedVisualDescriptors && character.translatedVisualDescriptors.length > 0)}
+                  <div class="flex flex-wrap gap-1">
+                    {#each character.translatedVisualDescriptors ?? character.visualDescriptors as descriptor}
+                      <span
+                        class="inline-flex items-center rounded-sm bg-pink-500/10 px-1.5 py-0.5 text-[10px] font-medium text-pink-600 dark:text-pink-400"
+                      >
+                        {descriptor}
+                      </span>
+                    {/each}
+                  </div>
+                {/if}
+                {#if character.description || character.translatedDescription}
+                  <p class="text-xs text-muted-foreground leading-relaxed">
+                    {character.translatedDescription ?? character.description}
+                  </p>
+                {/if}
               </div>
-            {:else}
-              <!-- Just footer actions if no details -->
-              <div
-                class="flex items-center justify-end mt-1 border-t border-border"
-              >
-                <IconRow
-                  class="ml-auto"
-                  onDelete={!isProtagonist
-                    ? () => deleteCharacter(character)
-                    : undefined}
-                  showDelete={!isProtagonist}
-                >
+            {/if}
+
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center -ml-1.5">
+                {#if hasDetails(character)}
                   <Button
                     variant="text"
                     size="icon"
-                    class={cn(
-                      "h-6 w-6",
-                      savedToVaultId === character.id
-                        ? "text-green-500"
-                        : "text-muted-foreground hover:text-primary",
-                    )}
-                    onclick={() => saveCharacterToVault(character)}
-                    title="Save to vault"
+                    class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onclick={() => toggleCollapse(character.id)}
+                    title={isCollapsed ? "Show details" : "Hide details"}
                   >
-                    <Archive class="h-3 w-3" />
+                    <ChevronDown
+                      class={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        !isCollapsed ? "rotate-180" : "",
+                      )}
+                    />
                   </Button>
-                </IconRow>
+                {/if}
               </div>
-            {/if}
+
+              <IconRow
+                class="-mr-1.5"
+                onDelete={!isProtagonist
+                  ? () => deleteCharacter(character)
+                  : undefined}
+                showDelete={!isProtagonist}
+              >
+                {#if !isProtagonist}
+                  <Button
+                    variant="text"
+                    size="icon"
+                    class="h-6 w-6 text-muted-foreground hover:text-amber-500"
+                    onclick={() => beginSwap(character)}
+                    title="Make protagonist"
+                  >
+                    <Star class="h-3.5 w-3.5" />
+                  </Button>
+                {/if}
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => startEdit(character)}
+                  title="Edit"
+                >
+                  <Pencil class="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class={cn(
+                    "h-6 w-6",
+                    savedToVaultId === character.id
+                      ? "text-green-500"
+                      : "text-muted-foreground hover:text-primary",
+                  )}
+                  onclick={() => saveCharacterToVault(character)}
+                  title="Save to vault"
+                >
+                  <Archive class="h-3.5 w-3.5" />
+                </Button>
+              </IconRow>
+            </div>
           {/if}
         </div>
       {/each}

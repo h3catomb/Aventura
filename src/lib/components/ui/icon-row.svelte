@@ -62,18 +62,18 @@
       {/if}
       {#if onDelete && showDelete}
         <Button
-          class="h-6 w-5"
-          variant="destructive"
+          variant="text"
           {size}
-        onclick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          confirming = true;
-        }}
-        title="Delete"
-      >
-        <Trash2 class="h-3.5 w-3.5" />
-      </Button>
-    {/if}
+          class="h-6 w-6 text-muted-foreground hover:text-destructive"
+          onclick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            confirming = true;
+          }}
+          title="Delete"
+        >
+          <Trash2 class="h-3.5 w-3.5" />
+        </Button>
+      {/if}
   {/if}
 </div>
