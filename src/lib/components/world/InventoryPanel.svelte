@@ -6,7 +6,7 @@
     Package,
     Shield,
     Pencil,
-    Trash2,
+    ArrowDown,
     ArrowUp,
     MapPin,
     ChevronDown,
@@ -133,7 +133,7 @@
     });
   }
 
-  async function moveItem(item: Item) {
+  async function moveItemToLocation(item: Item) {
     if (!dropLocationId) return;
     await story.updateItem(item.id, {
       location: dropLocationId,
@@ -229,9 +229,8 @@
 
         <div
           class={cn(
-            "group rounded-lg border border-border bg-card shadow-sm transition-all pl-3 pr-2 pt-3 pb-2",
-            "border-l-4 border-l-primary" /* Highlight equipped items */,
-            isEditing ? "ring-1 ring-primary/20" : "",
+            "group rounded-lg border bg-card shadow-sm transition-all px-2.5 py-2",
+            isEditing ? "ring-1 ring-primary/20 border-border" : "border-primary/40",
           )}
         >
           {#if isEditing}
@@ -371,103 +370,82 @@
             </div>
           {:else}
             <!-- VIEW MODE -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-2.5">
               <!-- Icon -->
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 bg-primary/10 ring-primary/50 text-primary"
               >
-                <Shield class="h-5 w-5" />
+                <Shield class="h-3.5 w-3.5" />
               </div>
 
-              <!-- Content -->
-              <div class="min-w-0 flex-1 pt-0.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <p
-                      class="font-medium leading-none text-foreground truncate"
-                    >
-                      {item.translatedName ?? item.name}
-                    </p>
-                    {#if item.quantity > 1}
-                      <Badge variant="secondary" class="h-4 px-1.5 text-[10px]"
-                        >x{item.quantity}</Badge
-                      >
-                    {/if}
-                  </div>
-
-                  <div class="flex items-center">
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class="h-6 w-6 text-muted-foreground hover:text-foreground -my-1"
-                      onclick={() => startEdit(item)}
-                      title="Edit"
-                    >
-                      <Pencil class="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+              <!-- Name & Quantity -->
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
+                <span class="font-medium text-sm leading-tight text-foreground">
+                  {item.translatedName ?? item.name}
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <Badge variant="default" class="px-1.5 py-0 text-[10px] uppercase tracking-wide h-4 w-fit">
+                    Equipped
+                  </Badge>
+                  {#if item.quantity > 1}
+                    <Badge variant="secondary" class="h-4 px-1.5 text-[10px]">
+                      x{item.quantity}
+                    </Badge>
+                  {/if}
                 </div>
-
-                <!-- Description -->
-                {#if hasDescription(item)}
-                  <div class="text-xs text-muted-foreground mt-1.5">
-                    {#if !isCollapsed}
-                      <p class="leading-relaxed">
-                        {item.translatedDescription ?? item.description}
-                      </p>
-                    {:else}
-                      <button
-                        type="button"
-                        class="truncate cursor-pointer hover:text-foreground bg-transparent border-none p-0 text-left w-full"
-                        onclick={() => toggleCollapse(item.id)}
-                        aria-label="Toggle description"
-                      >
-                        {item.translatedDescription ?? item.description}
-                      </button>
-                    {/if}
-                  </div>
-                {/if}
               </div>
             </div>
 
-            <!-- Footer Actions -->
-            <div
-              class="flex items-center justify-between mt-1 border-t border-border/0 pt-1"
-            >
-              {#if (item.description?.length ?? 0) > 45 || (item.translatedDescription?.length ?? 0) > 45}
-                <Button
-                  variant="text"
-                  size="icon"
-                  class="h-6 w-6 -ml-2 text-muted-foreground hover:text-foreground"
-                  onclick={() => toggleCollapse(item.id)}
-                  title={isCollapsed
-                    ? "Show full description"
-                    : "Hide description"}
-                >
-                  <ChevronDown
-                    class={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      !isCollapsed ? "rotate-180" : "",
-                    )}
-                  />
-                </Button>
-              {:else}
-                <div></div>
-              {/if}
+            <!-- Expanded Details -->
+            {#if !isCollapsed && hasDescription(item)}
+              <div class="mt-2 text-xs text-muted-foreground">
+                <p class="leading-relaxed">
+                  {item.translatedDescription ?? item.description}
+                </p>
+              </div>
+            {/if}
 
-              <div class="flex items-center gap-1 ml-auto">
-                <IconRow onDelete={() => deleteItem(item)} showDelete={true}>
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center -ml-1.5">
+                {#if hasDescription(item)}
                   <Button
                     variant="text"
                     size="icon"
                     class="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onclick={() => beginDrop(item)}
-                    title="Drop item"
+                    onclick={() => toggleCollapse(item.id)}
+                    title={isCollapsed ? "Show details" : "Hide details"}
                   >
-                    <ArrowUp class="h-3.5 w-3.5" />
+                    <ChevronDown
+                      class={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        !isCollapsed ? "rotate-180" : "",
+                      )}
+                    />
                   </Button>
-                </IconRow>
+                {/if}
               </div>
+
+              <IconRow class="-mr-1.5" onDelete={() => deleteItem(item)} showDelete={true}>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => beginDrop(item)}
+                  title="Drop item"
+                >
+                  <ArrowDown class="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => startEdit(item)}
+                  title="Edit"
+                >
+                  <Pencil class="h-3.5 w-3.5" />
+                </Button>
+              </IconRow>
             </div>
           {/if}
         </div>
@@ -491,8 +469,8 @@
 
         <div
           class={cn(
-            "group rounded-lg border border-border bg-card shadow-sm transition-all pl-3 pr-2 pt-3 pb-2",
-            isEditing ? "ring-1 ring-primary/20" : "",
+            "group rounded-lg border bg-card shadow-sm transition-all px-2.5 py-2",
+            isEditing ? "ring-1 ring-primary/20 border-border" : "border-muted-foreground/20",
           )}
         >
           {#if isEditing}
@@ -632,101 +610,77 @@
             </div>
           {:else}
             <!-- VIEW MODE -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-2.5">
               <!-- Icon -->
               <div
-                class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 bg-secondary/50 ring-muted-foreground/30 text-muted-foreground"
               >
-                <Package class="h-5 w-5" />
+                <Package class="h-3.5 w-3.5" />
               </div>
 
-              <!-- Content -->
-              <div class="min-w-0 flex-1 pt-0.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <p
-                      class="font-medium leading-none text-foreground truncate"
-                    >
-                      {item.translatedName ?? item.name}
-                    </p>
-                    {#if item.quantity > 1}
-                      <Badge variant="secondary" class="h-4 px-1.5 text-[10px]"
-                        >x{item.quantity}</Badge
-                      >
-                    {/if}
-                  </div>
-
-                  <div class="flex items-center">
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class="h-6 w-6 text-muted-foreground hover:text-foreground -my-1"
-                      onclick={() => startEdit(item)}
-                      title="Edit"
-                    >
-                      <Pencil class="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                <!-- Description -->
-                {#if hasDescription(item)}
-                  <div class="text-xs text-muted-foreground mt-1.5">
-                    {#if !isCollapsed}
-                      <p class="leading-relaxed">
-                        {item.translatedDescription ?? item.description}
-                      </p>
-                    {:else}
-                      <p
-                        class="truncate cursor-pointer hover:text-foreground"
-                        onclick={() => toggleCollapse(item.id)}
-                      >
-                        {item.translatedDescription ?? item.description}
-                      </p>
-                    {/if}
-                  </div>
+              <!-- Name & Quantity -->
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
+                <span class="font-medium text-sm leading-tight text-foreground">
+                  {item.translatedName ?? item.name}
+                </span>
+                {#if item.quantity > 1}
+                  <Badge variant="secondary" class="h-4 px-1.5 text-[10px] w-fit">
+                    x{item.quantity}
+                  </Badge>
                 {/if}
               </div>
             </div>
 
-            <!-- Footer Actions -->
-            <div
-              class="flex items-center justify-between mt-1 border-t border-border/0 pt-1"
-            >
-              {#if (item.description?.length ?? 0) > 45 || (item.translatedDescription?.length ?? 0) > 45}
-                <Button
-                  variant="text"
-                  size="icon"
-                  class="h-6 w-6 -ml-2 text-muted-foreground hover:text-foreground"
-                  onclick={() => toggleCollapse(item.id)}
-                  title={isCollapsed
-                    ? "Show full description"
-                    : "Hide description"}
-                >
-                  <ChevronDown
-                    class={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      !isCollapsed ? "rotate-180" : "",
-                    )}
-                  />
-                </Button>
-              {:else}
-                <div></div>
-              {/if}
+            <!-- Expanded Details -->
+            {#if !isCollapsed && hasDescription(item)}
+              <div class="mt-2 text-xs text-muted-foreground">
+                <p class="leading-relaxed">
+                  {item.translatedDescription ?? item.description}
+                </p>
+              </div>
+            {/if}
 
-              <div class="flex items-center gap-1 ml-auto">
-                <IconRow onDelete={() => deleteItem(item)} showDelete={true}>
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center -ml-1.5">
+                {#if hasDescription(item)}
                   <Button
                     variant="text"
                     size="icon"
                     class="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onclick={() => beginDrop(item)}
-                    title="Drop item"
+                    onclick={() => toggleCollapse(item.id)}
+                    title={isCollapsed ? "Show details" : "Hide details"}
                   >
-                    <ArrowUp class="h-3.5 w-3.5" />
+                    <ChevronDown
+                      class={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        !isCollapsed ? "rotate-180" : "",
+                      )}
+                    />
                   </Button>
-                </IconRow>
+                {/if}
               </div>
+
+              <IconRow class="-mr-1.5" onDelete={() => deleteItem(item)} showDelete={true}>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => beginDrop(item)}
+                  title="Drop item"
+                >
+                  <ArrowDown class="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => startEdit(item)}
+                  title="Edit"
+                >
+                  <Pencil class="h-3.5 w-3.5" />
+                </Button>
+              </IconRow>
             </div>
           {/if}
         </div>
@@ -888,7 +842,7 @@
                 <Button
                   size="sm"
                   class="h-7 text-xs px-4"
-                  onclick={() => moveItem(item)}
+                  onclick={() => moveItemToLocation(item)}
                   disabled={!dropLocationId}
                 >
                   Move
@@ -897,114 +851,91 @@
             </div>
           {:else}
             <!-- VIEW MODE -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-2.5">
               <!-- Icon -->
               <div
-                class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 bg-muted/50 ring-muted-foreground/20 text-muted-foreground opacity-60"
               >
-                <Package class="h-5 w-5" />
+                <Package class="h-3.5 w-3.5" />
               </div>
 
-              <!-- Content -->
-              <div class="min-w-0 flex-1 pt-0.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <p
-                      class="font-medium leading-none text-foreground truncate"
-                    >
-                      {item.translatedName ?? item.name}
-                    </p>
-                    {#if item.quantity > 1}
-                      <Badge variant="secondary" class="h-4 px-1.5 text-[10px]"
-                        >x{item.quantity}</Badge
-                      >
-                    {/if}
-                  </div>
-
-                  <div class="flex items-center">
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class="h-6 w-6 text-muted-foreground hover:text-foreground -my-1"
-                      onclick={() => startEdit(item)}
-                      title="Edit"
-                    >
-                      <Pencil class="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+              <!-- Name & Location -->
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
+                <span class="font-medium text-sm leading-tight text-muted-foreground">
+                  {item.translatedName ?? item.name}
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <Badge variant="secondary" class="px-1.5 py-0 text-[10px] font-normal text-muted-foreground h-4 w-fit">
+                    {getLocationLabel(item.location)}
+                  </Badge>
+                  {#if item.quantity > 1}
+                    <Badge variant="secondary" class="h-4 px-1.5 text-[10px] w-fit">
+                      x{item.quantity}
+                    </Badge>
+                  {/if}
                 </div>
-
-                <p class="mt-1 text-xs text-muted-foreground">
-                  At {getLocationLabel(item.location)}
-                </p>
-
-                <!-- Description -->
-                {#if hasDescription(item)}
-                  <div class="text-xs text-muted-foreground mt-1.5">
-                    {#if !isCollapsed}
-                      <p class="leading-relaxed">
-                        {item.translatedDescription ?? item.description}
-                      </p>
-                    {:else}
-                      <p
-                        class="truncate cursor-pointer hover:text-foreground"
-                        onclick={() => toggleCollapse(item.id)}
-                      >
-                        {item.translatedDescription ?? item.description}
-                      </p>
-                    {/if}
-                  </div>
-                {/if}
               </div>
             </div>
 
+            <!-- Expanded Details -->
+            {#if !isCollapsed && hasDescription(item)}
+              <div class="mt-2 text-xs text-muted-foreground">
+                <p class="leading-relaxed">
+                  {item.translatedDescription ?? item.description}
+                </p>
+              </div>
+            {/if}
+
             <!-- Footer Actions -->
-            <div
-              class="flex items-center justify-between mt-1 border-t border-border/0 pt-1"
-            >
-              {#if (item.description?.length ?? 0) > 45 || (item.translatedDescription?.length ?? 0) > 45}
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center -ml-1.5">
+                {#if hasDescription(item)}
+                  <Button
+                    variant="text"
+                    size="icon"
+                    class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onclick={() => toggleCollapse(item.id)}
+                    title={isCollapsed ? "Show details" : "Hide details"}
+                  >
+                    <ChevronDown
+                      class={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        !isCollapsed ? "rotate-180" : "",
+                      )}
+                    />
+                  </Button>
+                {/if}
+              </div>
+
+              <IconRow class="-mr-1.5" onDelete={() => deleteItem(item)} showDelete={true}>
                 <Button
                   variant="text"
                   size="icon"
-                  class="h-6 w-6 -ml-2 text-muted-foreground hover:text-foreground"
-                  onclick={() => toggleCollapse(item.id)}
-                  title={isCollapsed
-                    ? "Show full description"
-                    : "Hide description"}
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => pickUpItem(item)}
+                  title="Pick up"
                 >
-                  <ChevronDown
-                    class={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      !isCollapsed ? "rotate-180" : "",
-                    )}
-                  />
+                  <ArrowUp class="h-3.5 w-3.5" />
                 </Button>
-              {:else}
-                <div></div>
-              {/if}
-
-              <div class="flex items-center gap-1 ml-auto">
-                <IconRow onDelete={() => deleteItem(item)} showDelete={true}>
-                  <Button
-                    variant="text"
-                    size="icon"
-                    class="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onclick={() => pickUpItem(item)}
-                    title="Pick up"
-                  >
-                    <ArrowUp class="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="text"
-                    size="icon"
-                    class="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onclick={() => beginDrop(item)}
-                    title="Move item"
-                  >
-                    <MapPin class="h-3.5 w-3.5" />
-                  </Button>
-                </IconRow>
-              </div>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => beginDrop(item)}
+                  title="Move item"
+                >
+                  <MapPin class="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="text"
+                  size="icon"
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => startEdit(item)}
+                  title="Edit"
+                >
+                  <Pencil class="h-3.5 w-3.5" />
+                </Button>
+              </IconRow>
             </div>
           {/if}
         </div>

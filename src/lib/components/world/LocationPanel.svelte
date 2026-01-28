@@ -5,7 +5,6 @@
     Plus,
     MapPin,
     Navigation,
-    Trash2,
     Pencil,
     ChevronDown,
     Save,
@@ -143,7 +142,10 @@
     {@const isCollapsed = ui.isEntityCollapsed(currentLocation.id)}
 
     <div
-      class="rounded-lg border border-accent-500/50 bg-accent-500/10 pl-3 pr-2 pt-3 pb-2 shadow-sm mb-2"
+      class={cn(
+        "rounded-lg border bg-accent-500/5 shadow-sm px-2.5 py-2 mb-2",
+        isEditing ? "ring-1 ring-primary/20 border-border" : "border-accent-500/50",
+      )}
     >
       {#if isEditing}
         <!-- EDIT MODE (Current) -->
@@ -203,63 +205,60 @@
         </div>
       {:else}
         <!-- DISPLAY MODE (Current) -->
-        <div class="flex items-center gap-2 text-accent-500 mb-1">
-          <Navigation class="h-4 w-4" />
-          <span class="text-xs font-bold uppercase tracking-wide"
-            >Current Location</span
+        <div class="flex items-start gap-2.5">
+          <!-- Current Location Icon -->
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 bg-accent-500/20 ring-accent-500/50"
           >
+            <Navigation class="h-3.5 w-3.5 text-accent-500" />
+          </div>
+
+          <!-- Name & Badge -->
+          <div class="flex-1 min-w-0 flex flex-col gap-1">
+            <span class="font-medium text-sm leading-tight text-foreground">
+              {currentLocation.translatedName ?? currentLocation.name}
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-accent-500 w-fit">
+              Current Location
+            </span>
+          </div>
         </div>
 
-        <h4 class="font-medium text-foreground break-words">
-          {currentLocation.translatedName ?? currentLocation.name}
-        </h4>
-
-        {#if currentLocation.description || currentLocation.translatedDescription}
-          <div class="mt-2 text-sm text-muted-foreground">
-            {#if !isCollapsed}
-              <p class="leading-relaxed whitespace-pre-wrap">
-                {currentLocation.translatedDescription ??
-                  currentLocation.description}
-              </p>
-            {:else}
-              <p
-                class="truncate cursor-pointer hover:text-foreground"
-                onclick={() => toggleCollapse(currentLocation.id)}
-              >
-                {currentLocation.translatedDescription ??
-                  currentLocation.description}
-              </p>
-            {/if}
+        <!-- Expanded Details -->
+        {#if !isCollapsed && (currentLocation.description || currentLocation.translatedDescription)}
+          <div class="mt-2 text-xs text-muted-foreground">
+            <p class="leading-relaxed whitespace-pre-wrap">
+              {currentLocation.translatedDescription ?? currentLocation.description}
+            </p>
           </div>
         {/if}
 
-        <div
-          class="flex items-center justify-between mt-2 pt-2 border-t border-accent-500/20"
-        >
-          {#if (currentLocation.description?.length ?? 0) > 45 || (currentLocation.translatedDescription?.length ?? 0) > 45}
-            <Button
-              variant="text"
-              size="icon"
-              class="h-6 w-6 -ml-2 text-accent-500 hover:text-accent-700"
-              onclick={() => toggleCollapse(currentLocation.id)}
-              title={isCollapsed ? "Show full description" : "Hide description"}
-            >
-              <ChevronDown
-                class={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  !isCollapsed ? "rotate-180" : "",
-                )}
-              />
-            </Button>
-          {:else}
-            <div></div>
-          {/if}
+        <!-- Footer Actions -->
+        <div class="flex items-center justify-between mt-2">
+          <div class="flex items-center -ml-1.5">
+            {#if currentLocation.description || currentLocation.translatedDescription}
+              <Button
+                variant="text"
+                size="icon"
+                class="h-6 w-6 text-accent-500 hover:text-accent-600"
+                onclick={() => toggleCollapse(currentLocation.id)}
+                title={isCollapsed ? "Show details" : "Hide details"}
+              >
+                <ChevronDown
+                  class={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    !isCollapsed ? "rotate-180" : "",
+                  )}
+                />
+              </Button>
+            {/if}
+          </div>
 
-          <div class="flex items-center">
+          <div class="flex items-center gap-0.5 -mr-1.5">
             <Button
               variant="text"
               size="icon"
-              class="h-6 w-6 text-accent-500 hover:text-accent-700"
+              class="h-6 w-6 text-accent-500 hover:text-accent-600"
               onclick={() => startEdit(currentLocation)}
               title="Edit location"
             >
@@ -290,15 +289,17 @@
       </Button>
     </div>
   {:else}
-    <div class="flex flex-col gap-3.5">
+    <div class="flex flex-col gap-2">
       {#each story.locations.filter((l) => !l.current) as location (location.id)}
         {@const isCollapsed = ui.isEntityCollapsed(location.id)}
         {@const isEditing = editingId === location.id}
 
         <div
           class={cn(
-            "group rounded-lg border border-border bg-card shadow-sm transition-all pl-3 pr-2 pt-3 pb-2",
-            isEditing ? "ring-1 ring-primary/20" : "",
+            "group rounded-lg border bg-card shadow-sm transition-all px-2.5 py-2",
+            isEditing && "ring-1 ring-primary/20 border-border",
+            !isEditing && location.visited && "border-muted-foreground/20",
+            !isEditing && !location.visited && "border-primary/30",
           )}
         >
           {#if isEditing}
@@ -359,119 +360,98 @@
             </div>
           {:else}
             <!-- DISPLAY MODE -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-2.5">
               <!-- Visited Status Icon -->
               <button
                 class={cn(
-                  "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ring-1 transition-colors",
+                  "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ring-2 transition-colors",
                   location.visited
-                    ? "bg-muted ring-muted text-muted-foreground hover:bg-muted/80"
-                    : "bg-primary/10 ring-primary/20 text-primary hover:bg-primary/20",
+                    ? "bg-muted/50 ring-muted-foreground/30 text-muted-foreground hover:bg-muted"
+                    : "bg-primary/10 ring-primary/50 text-primary hover:bg-primary/20",
                 )}
                 onclick={() => toggleVisited(location.id)}
                 title={location.visited
                   ? "Mark as unvisited"
                   : "Mark as visited"}
               >
-                <MapPin class="h-4 w-4" />
+                <MapPin class={cn("h-3.5 w-3.5", location.visited && "opacity-60")} />
               </button>
 
-              <div class="min-w-0 flex-1 pt-0.5">
-                <div class="flex items-center justify-between">
-                  <p
-                    class="font-medium leading-none text-foreground truncate pr-2"
-                  >
-                    {location.translatedName ?? location.name}
-                  </p>
-                  <div class="flex items-center">
-                    <Button
-                      variant="text"
-                      size="icon"
-                      class="h-6 w-6 text-muted-foreground hover:text-foreground -my-1"
-                      onclick={() => startEdit(location)}
-                      title="Edit"
-                    >
-                      <Pencil class="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div class="mt-1 flex items-center gap-2">
-                  <span
-                    class={cn(
-                      "text-[10px] font-medium uppercase tracking-wider",
-                      location.visited
-                        ? "text-muted-foreground"
-                        : "text-primary",
-                    )}
-                  >
-                    {location.visited ? "Visited" : "Unvisited"}
-                  </span>
-                </div>
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
+                <span
+                  class={cn(
+                    "font-medium text-sm leading-tight",
+                    location.visited ? "text-muted-foreground" : "text-foreground",
+                  )}
+                >
+                  {location.translatedName ?? location.name}
+                </span>
+                <span
+                  class={cn(
+                    "text-[10px] font-medium uppercase tracking-wider w-fit",
+                    location.visited ? "text-muted-foreground/70" : "text-primary",
+                  )}
+                >
+                  {location.visited ? "Visited" : "Unvisited"}
+                </span>
               </div>
             </div>
 
-            <!-- Description -->
-            {#if location.description || location.translatedDescription}
+            <!-- Description (Expanded) -->
+            {#if !isCollapsed && (location.description || location.translatedDescription)}
               <div class="mt-2 text-xs text-muted-foreground">
-                {#if !isCollapsed}
-                  <p class="leading-relaxed whitespace-pre-wrap">
-                    {location.translatedDescription ?? location.description}
-                  </p>
-                {:else}
-                  <p
-                    class="truncate cursor-pointer hover:text-foreground"
-                    onclick={() => toggleCollapse(location.id)}
-                  >
-                    {location.translatedDescription ?? location.description}
-                  </p>
-                {/if}
+                <p class="leading-relaxed whitespace-pre-wrap">
+                  {location.translatedDescription ?? location.description}
+                </p>
               </div>
             {/if}
 
             <!-- Footer Actions -->
-            <div
-              class="flex items-center justify-between mt-2 pt-2 border-t border-border"
-            >
-              {#if (location.description?.length ?? 0) > 45 || (location.translatedDescription?.length ?? 0) > 45}
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center -ml-1.5">
+                {#if location.description || location.translatedDescription}
+                  <Button
+                    variant="text"
+                    size="icon"
+                    class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onclick={() => toggleCollapse(location.id)}
+                    title={isCollapsed ? "Show details" : "Hide details"}
+                  >
+                    <ChevronDown
+                      class={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        !isCollapsed ? "rotate-180" : "",
+                      )}
+                    />
+                  </Button>
+                {/if}
+              </div>
+
+              <IconRow
+                class="-mr-1.5"
+                onDelete={() => deleteLocation(location)}
+                showDelete={true}
+              >
+                <Button
+                  variant="text"
+                  size="sm"
+                  class="h-6 text-xs text-muted-foreground hover:text-primary"
+                  onclick={() => goToLocation(location.id)}
+                  title="Travel to location"
+                >
+                  <Navigation class="mr-1 h-3 w-3" />
+                  Travel
+                </Button>
                 <Button
                   variant="text"
                   size="icon"
-                  class="h-6 w-6 -ml-2 text-muted-foreground hover:text-foreground"
-                  onclick={() => toggleCollapse(location.id)}
-                  title={isCollapsed
-                    ? "Show full description"
-                    : "Hide description"}
+                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onclick={() => startEdit(location)}
+                  title="Edit"
                 >
-                  <ChevronDown
-                    class={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      !isCollapsed ? "rotate-180" : "",
-                    )}
-                  />
+                  <Pencil class="h-3.5 w-3.5" />
                 </Button>
-              {:else}
-                <div></div>
-              {/if}
-
-              <div class="flex items-center gap-2">
-                <IconRow
-                  class="ml-0"
-                  onDelete={() => deleteLocation(location)}
-                  showDelete={true}
-                >
-                  <Button
-                    variant="text"
-                    size="sm"
-                    class="h-6 text-xs text-muted-foreground hover:text-primary"
-                    onclick={() => goToLocation(location.id)}
-                    title="Travel to location"
-                  >
-                    <Navigation class="mr-1 h-3 w-3" />
-                    Travel
-                  </Button>
-                </IconRow>
-              </div>
+              </IconRow>
             </div>
           {/if}
         </div>

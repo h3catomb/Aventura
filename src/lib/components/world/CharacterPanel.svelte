@@ -173,43 +173,31 @@
     }
   }
 
-  function getStatusIcon(status: string) {
-    switch (status) {
-      case "active":
-        return User;
-      case "inactive":
-        return UserX;
-      case "deceased":
-        return Skull;
-      default:
-        return User;
-    }
-  }
+  type LucideIcon = typeof User;
 
-  function getStatusColor(status: string) {
-    switch (status) {
-      case "active":
-        return "text-green-500";
-      case "inactive":
-        return "text-muted-foreground";
-      case "deceased":
-        return "text-destructive";
-      default:
-        return "text-muted-foreground";
-    }
-  }
+  const STATUS_CONFIG: Record<
+    Character["status"],
+    { icon: LucideIcon; color: string; bgColor: string }
+  > = {
+    active: {
+      icon: User,
+      color: "text-green-500",
+      bgColor: "bg-green-500/10 ring-green-500/50",
+    },
+    inactive: {
+      icon: UserX,
+      color: "text-muted-foreground",
+      bgColor: "bg-muted ring-muted-foreground/30",
+    },
+    deceased: {
+      icon: Skull,
+      color: "text-destructive",
+      bgColor: "bg-destructive/10 ring-destructive/50",
+    },
+  };
 
-  function getStatusBgColor(status: string) {
-    switch (status) {
-      case "active":
-        return "bg-green-500/10 ring-green-500/20";
-      case "inactive":
-        return "bg-muted ring-muted";
-      case "deceased":
-        return "bg-destructive/10 ring-destructive/20";
-      default:
-        return "bg-muted ring-muted";
-    }
+  function getStatusConfig(status: Character["status"]) {
+    return STATUS_CONFIG[status] ?? STATUS_CONFIG.active;
   }
 
   // Portrait handling functions
@@ -440,7 +428,7 @@
     <!-- Character List -->
     <div class="flex flex-col gap-2">
       {#each story.characters as character (character.id)}
-        {@const StatusIcon = getStatusIcon(character.status)}
+        {@const statusConfig = getStatusConfig(character.status)}
         {@const isProtagonist = character.relationship === "self"}
         {@const isCollapsed = ui.isEntityCollapsed(character.id)}
         {@const isEditing = editingId === character.id}
@@ -701,13 +689,11 @@
                 <div
                   class={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2",
-                    character.status === "active" && "bg-green-500/10 ring-green-500/50",
-                    character.status === "inactive" && "bg-muted ring-muted-foreground/30",
-                    character.status === "deceased" && "bg-destructive/10 ring-destructive/50",
+                    statusConfig.bgColor,
                   )}
                 >
-                  <StatusIcon
-                    class={cn("h-3.5 w-3.5", getStatusColor(character.status))}
+                  <statusConfig.icon
+                    class={cn("h-3.5 w-3.5", statusConfig.color)}
                   />
                 </div>
               {/if}
