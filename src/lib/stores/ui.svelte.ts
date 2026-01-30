@@ -491,7 +491,7 @@ class UIStore {
       traits: [...(c.traits ?? [])],
       status: c.status,
       relationship: c.relationship ?? null,
-      visualDescriptors: [...(c.visualDescriptors ?? [])],
+      visualDescriptors: { ...(c.visualDescriptors ?? {}) },
       portrait: c.portrait,
     }));
 
@@ -512,12 +512,12 @@ class UIStore {
     const shallowCopyArray = <T extends object>(arr: T[]): T[] =>
       arr.map(item => ({ ...item }));
 
-    // For characters, also copy nested arrays (traits, visualDescriptors)
+    // For characters, also copy nested arrays/objects (traits, visualDescriptors)
     const copyCharacters = (chars: Character[]): Character[] =>
       chars.map(c => ({
         ...c,
         traits: [...(c.traits || [])],
-        visualDescriptors: [...(c.visualDescriptors || [])],
+        visualDescriptors: { ...(c.visualDescriptors || {}) },
       }));
 
     // For locations, copy connections array
@@ -563,11 +563,11 @@ class UIStore {
     // Debug: Log character visual descriptors at backup time (before storing)
     const charDescriptorsAtBackup = characters.map(c => ({
       name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
+      visualDescriptors: c.visualDescriptors,
     }));
     const charDescriptorsInBackup = backup.characters.map(c => ({
       name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
+      visualDescriptors: c.visualDescriptors,
     }));
     console.log('[UI] BACKUP DEBUG - Character descriptors at creation:', {
       charDescriptorsAtBackup,
@@ -583,7 +583,7 @@ class UIStore {
     if (storedBackup) {
       const storedCharDescriptors = storedBackup.characters.map(c => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: c.visualDescriptors,
       }));
       console.log('[UI] BACKUP DEBUG - Verification after store:', {
         storedCharDescriptors,

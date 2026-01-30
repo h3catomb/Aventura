@@ -1189,49 +1189,7 @@ Items: {{existingItems}}
 3. Identify any NEW significant entities introduced (apply the extraction rules strictly)
 4. Determine the current scene state
 
-## Response Format (JSON only)
-{
-  "entryUpdates": {
-    "characterUpdates": [],
-    "locationUpdates": [],
-    "itemUpdates": [],
-    "storyBeatUpdates": [],
-    "newCharacters": [],
-    "newLocations": [],
-    "newItems": [],
-    "newStoryBeats": []
-  },
-  "scene": {
-    "currentLocationName": null,
-    "presentCharacterNames": [],
-    "timeProgression": "none"
-  }
-}
-
-### Field Specifications
-
-characterUpdates: [{"name": "ExistingName", "changes": {"status": "active|inactive|deceased", "relationship": "new relationship", "newTraits": ["trait"], "removeTraits": ["trait"], "replaceVisualDescriptors": ["Face: ...", "Hair: ...", "Eyes: ...", "Build: ...", "Clothing: ...", "Accessories: ...", "Distinguishing marks: ..."]}}]
-NOTE: Use replaceVisualDescriptors (preferred) to output the COMPLETE cleaned-up appearance list. This replaces all existing descriptors.
-
-locationUpdates: [{"name": "ExistingName", "changes": {"visited": true, "current": true, "descriptionAddition": "new detail learned"}}]
-
-itemUpdates: [{"name": "ExistingName", "changes": {"quantity": 1, "equipped": true, "location": "{{itemLocationOptions}}"}}]
-
-storyBeatUpdates: [{"title": "ExistingBeatTitle", "changes": {"status": "completed|failed", "description": "optional updated description"}}]
-
-newCharacters: [{"name": "ProperName", "description": "one sentence", "relationship": "friend|enemy|ally|neutral|unknown", "traits": ["trait1"], "visualDescriptors": ["MUST include: face/skin, hair, eyes, build, full clothing, accessories - invent plausible details if not described"]}]
-
-newLocations: [{"name": "ProperName", "description": "one sentence", "visited": true, "current": false}]
-
-newItems: [{"name": "ItemName", "description": "one sentence", "quantity": 1, "location": "{{defaultItemLocation}}"}]
-
-newStoryBeats: [{"title": "Short Title", "description": "what happened or was learned", "type": "{{storyBeatTypes}}", "status": "pending|active|completed"}]
-
-scene.currentLocationName: {{sceneLocationDesc}}
-scene.presentCharacterNames: Names of characters physically present in the scene
-scene.timeProgression: Time elapsed based on activities - "none" (instant actions/brief dialogue), "minutes" (conversations/searches/short walks), "hours" (travel/lengthy tasks), "days" (sleep/long journeys/time skips). When in doubt, increment.
-
-Return valid JSON only. Empty arrays are fine - don't invent entities that aren't clearly in the text.`,
+Empty arrays are fine - don't invent entities that aren't clearly in the text.`,
 };
 
 const chapterAnalysisPromptTemplate: PromptTemplate = {
@@ -1244,10 +1202,6 @@ You are Auto Summarize Endpoint Selector. Your task is to identify the single be
 
 ## Task
 Select the message ID that represents the longest self-contained narrative arc within the given range. The endpoint should be at a natural narrative beat: resolution, decision, scene change, or clear transition.
-
-## Output Format
-Return ONLY a JSON object with a single field:
-{ "chapterEnd": <integer message ID> }
 
 ## Rules
 - Select exactly ONE endpoint
@@ -1286,27 +1240,13 @@ For each chapter, create a concise summary that includes ONLY:
 - Minor details or descriptive passages
 - Dialogue excerpts (unless pivotal)
 - Stylistic or thematic analysis
-- Personal interpretations or opinions
-
-## Output Format
-Respond with JSON only.`,
+- Personal interpretations or opinions`,
   userContent: `{{previousContext}}Summarize this story chapter and extract metadata.
 
 CHAPTER CONTENT:
 """
 {{chapterContent}}
-"""
-
-Respond with JSON:
-{
-  "summary": "A concise 2-3 sentence summary of what happened in this chapter",
-  "title": "A short evocative chapter title (3-6 words)",
-  "keywords": ["key", "words", "for", "search"],
-  "characters": ["Character names mentioned"],
-  "locations": ["Location names mentioned"],
-  "plotThreads": ["Active plot threads or quests"],
-  "emotionalTone": "The overall emotional tone (e.g., tense, hopeful, mysterious)"
-}`,
+"""`,
 };
 
 const retrievalDecisionPromptTemplate: PromptTemplate = {
@@ -1314,7 +1254,12 @@ const retrievalDecisionPromptTemplate: PromptTemplate = {
   name: 'Retrieval Decision',
   category: 'service',
   description: 'Decides which past chapters are relevant for current context',
-  content: `You decide which story chapters are relevant for the current context. Respond with valid JSON only.`,
+  content: `You decide which story chapters are relevant for the current context.
+
+Guidelines:
+- Only include chapters that are ACTUALLY relevant to the current context
+- Often, no chapters need to be queried - return empty arrays if nothing is relevant
+- Consider: characters mentioned, locations being revisited, plot threads referenced`,
   userContent: `Based on the user's input and current scene, decide which past chapters are relevant.
 
 USER INPUT:
@@ -1328,13 +1273,6 @@ CURRENT SCENE (last few messages):
 CHAPTER SUMMARIES:
 {{chapterSummaries}}
 
-Respond with JSON:
-{
-  "relevantChapterIds": ["id1", "id2"],
-  "queries": [
-    {"chapterId": "id1", "question": "What was X?"}
-  ]
-}
 
 Guidelines:
 - Only include chapters that are ACTUALLY relevant to the current context
@@ -1764,7 +1702,7 @@ Note: Include ALL significant characters mentioned in the card as NPCs. The prim
 
 The {{user}} will be the protagonist (their name will be filled in later) interacting with the NPCs in an interactive story.
 
-IMPORTANT: 
+IMPORTANT:
 - Identify who "{{char}}" refers to based on the content (NOT the card title "{{title}}")
 - Replace all {{char}} with the actual character name
 - KEEP all {{user}} placeholders as-is (they will be replaced with the player's character name later)

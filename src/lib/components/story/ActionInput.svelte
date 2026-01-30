@@ -6,7 +6,10 @@
   import { aiService } from "$lib/services/ai";
   import { database } from "$lib/services/database";
   import { SimpleActivationTracker } from "$lib/services/ai/retrieval/EntryRetrievalService";
-  import { ImageGenerationService, type ImageGenerationContext } from "$lib/services/ai/image/ImageGenerationService";
+  import {
+    ImageGenerationService,
+    type ImageGenerationContext,
+  } from "$lib/services/ai/image/ImageGenerationService";
   import type { TimelineFillResult } from "$lib/services/ai/retrieval/TimelineFillService";
   import { TranslationService } from "$lib/services/ai/utils/TranslationService";
   import {
@@ -24,6 +27,10 @@
     Loader2,
   } from "lucide-svelte";
   import type { Chapter } from "$lib/types";
+  import {
+    hasDescriptors,
+    descriptorsToString,
+  } from "$lib/utils/visualDescriptors";
   import Suggestions from "./Suggestions.svelte";
   import GrammarCheck from "./GrammarCheck.svelte";
   import { Button } from "$lib/components/ui/button";
@@ -61,11 +68,11 @@
 
     const imgSettings = settings.systemServicesSettings.imageGeneration;
     switch (imgSettings.imageProvider) {
-      case 'nanogpt':
+      case "nanogpt":
         return !imgSettings.nanoGptApiKey;
-      case 'chutes':
+      case "chutes":
         return !imgSettings.chutesApiKey;
-      case 'pollinations':
+      case "pollinations":
         return false; // Pollinations works without API key
       default:
         return true;
@@ -191,7 +198,9 @@
       );
 
       // Build complete context for macro expansion
-      const protagonist = story.characters.find((c) => c.relationship === "self");
+      const protagonist = story.characters.find(
+        (c) => c.relationship === "self",
+      );
       const promptContext = {
         mode: story.storyMode,
         pov: story.pov,
@@ -348,7 +357,9 @@
       );
 
       // Build complete context for macro expansion
-      const protagonist = story.characters.find((c) => c.relationship === "self");
+      const protagonist = story.characters.find(
+        (c) => c.relationship === "self",
+      );
       const promptContext = {
         mode: story.storyMode,
         pov: story.pov,
@@ -1219,17 +1230,14 @@
                         isArray: true,
                       });
                     }
-                    if (
-                      char.visualDescriptors &&
-                      char.visualDescriptors.length > 0
-                    ) {
+                    if (hasDescriptors(char.visualDescriptors)) {
                       itemsToTranslate.push({
                         id: `${dbChar.id}:visual`,
-                        text: char.visualDescriptors.join(", "),
+                        text: descriptorsToString(char.visualDescriptors),
                         type: "description",
                         entityType: "character",
                         field: "translatedVisualDescriptors",
-                        isArray: true,
+                        isArray: false, // Now stored as object, not array
                       });
                     }
                   }
@@ -1857,11 +1865,11 @@
     // Debug: Log character state before restore
     const currentCharDescriptors = story.characters.map((c) => ({
       name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
+      visualDescriptors: { ...c.visualDescriptors },
     }));
     const backupCharDescriptors = backup.characters.map((c) => ({
       name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
+      visualDescriptors: { ...c.visualDescriptors },
     }));
     log("RETRY DEBUG - Before restore:", {
       hasFullState: backup.hasFullState,
@@ -1949,7 +1957,7 @@
       // Debug: Log character state after restore
       const postRestoreCharDescriptors = story.characters.map((c) => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: { ...c.visualDescriptors },
       }));
       log("RETRY DEBUG - After restore:", {
         postRestoreCharDescriptors,
