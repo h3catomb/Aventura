@@ -19,18 +19,15 @@
     Flag,
     Brain,
     Calendar,
-    MoreVertical,
-    AlertCircle,
-    Eye,
+
     EyeOff,
     Bot,
-    BookOpen,
+
     Settings,
     List,
     Maximize2,
     Minimize2,
   } from "lucide-svelte";
-  import { fade } from "svelte/transition";
   import InteractiveLorebookChat from "./InteractiveLorebookChat.svelte";
   import TagInput from "$lib/components/tags/TagInput.svelte";
 
@@ -41,6 +38,8 @@
   import { Label } from "$lib/components/ui/label";
   import * as Tabs from "$lib/components/ui/tabs";
   import { cn } from "$lib/utils/cn";
+  import SelectTrigger from "../ui/select/select-trigger.svelte";
+  import { Select, SelectContent, SelectItem } from "../ui/select";
 
   interface Props {
     lorebook: VaultLorebook;
@@ -500,17 +499,27 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div class="space-y-2">
                         <Label>Entry Type</Label>
-                        <select
-                          bind:value={selectedEntry.type}
-                          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        <Select
+                          type="single"
+                          value={selectedEntry.type}
+                          onValueChange={(v) =>
+                            (selectedEntry.type = v as EntryType)}
                         >
-                          {#each entryTypes as type}
-                            <option value={type}
-                              >{type.charAt(0).toUpperCase() +
-                                type.slice(1)}</option
-                            >
-                          {/each}
-                        </select>
+                          <SelectTrigger id="entry-type">
+                            {`${
+                              selectedEntry.type.charAt(0).toUpperCase() +
+                              selectedEntry.type.slice(1)
+                            }` || "Select type"}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {#each entryTypes as option}
+                              <SelectItem value={option}
+                                >{option.charAt(0).toUpperCase() +
+                                  option.slice(1)}</SelectItem
+                              >
+                            {/each}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div class="space-y-2">
@@ -551,20 +560,35 @@
                     <div class="rounded-lg border bg-muted/30 p-4 space-y-4">
                       <h4 class="text-sm font-medium">Injection Settings</h4>
 
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div
+                        class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
+                      >
                         <div class="space-y-2">
                           <Label class="text-xs">Injection Mode</Label>
-                          <select
-                            bind:value={selectedEntry.injectionMode}
-                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          <Select
+                            type="single"
+                            value={selectedEntry.injectionMode}
+                            onValueChange={(v) =>
+                              (selectedEntry.injectionMode =
+                                v as EntryInjectionMode)}
                           >
-                            {#each injectionModes as mode}
-                              <option value={mode}
-                                >{mode.charAt(0).toUpperCase() +
-                                  mode.slice(1)}</option
-                              >
-                            {/each}
-                          </select>
+                            <SelectTrigger id="injection-mode">
+                              {`${
+                                selectedEntry.injectionMode
+                                  .charAt(0)
+                                  .toUpperCase() +
+                                selectedEntry.injectionMode.slice(1)
+                              }` || "Select mode"}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {#each injectionModes as option}
+                                <SelectItem value={option}
+                                  >{option.charAt(0).toUpperCase() +
+                                    option.slice(1)}</SelectItem
+                                >
+                              {/each}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div class="space-y-2">
@@ -572,24 +596,25 @@
                           <Input
                             type="number"
                             bind:value={selectedEntry.priority}
-                            class="h-9"
                           />
                         </div>
 
-                        <div class="flex items-end pb-1">
-                          <label
-                            class="flex items-center gap-2 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!selectedEntry.disabled}
-                              onchange={() =>
-                                (selectedEntry!.disabled =
-                                  !selectedEntry!.disabled)}
-                              class="h-4 w-4 rounded border-primary text-primary shadow focus:ring-1 focus:ring-ring"
-                            />
-                            <span>Enabled</span>
-                          </label>
+                        <div class="h-4 pt-3">
+                          <div class="flex items-end pb-1">
+                            <label
+                              class="flex items-center gap-2 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={!selectedEntry.disabled}
+                                onchange={() =>
+                                  (selectedEntry!.disabled =
+                                    !selectedEntry!.disabled)}
+                                class="h-4 w-4 rounded border-primary text-primary shadow focus:ring-1 focus:ring-ring"
+                              />
+                              <span>Enabled</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
