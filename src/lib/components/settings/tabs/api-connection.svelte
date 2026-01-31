@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { settings, NANOGPT_API_URL } from "$lib/stores/settings.svelte";
+  import { settings } from "$lib/stores/settings.svelte";
   import type { APIProfile, ProviderType } from "$lib/types";
   import type { ProviderInfo } from "$lib/services/ai/core/types";
   import { fetchModelsFromProvider } from "$lib/services/ai/sdk/providers";
@@ -87,6 +87,9 @@
     openai: false,
     anthropic: true,
     google: true,
+    nanogpt: true,
+    chutes: true,
+    pollinations: true,
   };
 
   const providerDisplayNames: Record<ProviderType, string> = {
@@ -94,6 +97,9 @@
     openai: "OpenAI Compatible",
     anthropic: "Anthropic",
     google: "Google AI",
+    nanogpt: "NanoGPT",
+    chutes: "Chutes",
+    pollinations: "Pollinations",
   };
 
   // Auto-save debounce state
@@ -307,21 +313,6 @@
     formBaseUrl = "https://integrate.api.nvidia.com/v1";
   }
 
-  function quickFillNanoGpt() {
-    formName = "NanoGPT";
-    formBaseUrl = NANOGPT_API_URL;
-    // Auto-fill API key if already configured for image generation
-    const imgApiKey = settings.systemServicesSettings.imageGeneration.nanoGptApiKey;
-    if (imgApiKey && !formApiKey) {
-      formApiKey = imgApiKey;
-    }
-  }
-
-  function quickFillPollinations() {
-    formName = "Pollinations";
-    formBaseUrl = "https://gen.pollinations.ai/v1";
-  }
-
   function quickFillSelfHosted(port: string, name: string) {
     formName = name;
     formBaseUrl = `http://127.0.0.1:${port}/v1`;
@@ -464,22 +455,6 @@
                   class="text-xs h-8"
                 >
                   NVIDIA NIM
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={quickFillNanoGpt}
-                  class="text-xs h-8"
-                >
-                  NanoGPT
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={quickFillPollinations}
-                  class="text-xs h-8"
-                >
-                  Pollinations
                 </Button>
                 <Button
                   variant="outline"
@@ -804,22 +779,6 @@
                         class="text-xs h-8"
                       >
                         NVIDIA NIM
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={quickFillNanoGpt}
-                        class="text-xs h-8"
-                      >
-                        NanoGPT
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={quickFillPollinations}
-                        class="text-xs h-8"
-                      >
-                        Pollinations
                       </Button>
                       <Button
                         variant="outline"

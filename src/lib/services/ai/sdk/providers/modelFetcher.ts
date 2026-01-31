@@ -17,6 +17,9 @@ const DEFAULT_BASE_URLS: Record<ProviderType, string | undefined> = {
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com/v1',
   google: 'https://generativelanguage.googleapis.com/v1beta',
+  nanogpt: 'https://nano-gpt.com/api/v1',
+  chutes: 'https://api.chutes.ai',
+  pollinations: 'https://gen.pollinations.ai/v1',
 };
 
 /**
@@ -81,6 +84,11 @@ export async function fetchModelsFromProvider(
   // Anthropic uses a different auth header and response format
   if (providerType === 'anthropic') {
     return fetchAnthropicModels(baseUrl, apiKey);
+  }
+
+  // Chutes uses a different endpoint format
+  if (providerType === 'chutes') {
+    return fetchChutesModels(baseUrl, apiKey);
   }
 
   // Determine effective base URL
@@ -234,4 +242,43 @@ async function fetchGoogleModels(baseUrl?: string, apiKey?: string): Promise<str
     console.warn('[ModelFetcher] Failed to fetch Google models, using fallback list:', error);
     return GOOGLE_FALLBACK_MODELS;
   }
+}
+
+/**
+ * Fetches models from the Chutes API.
+ * Chutes uses a `/chutes` endpoint with Bearer auth and returns `{ data: [{ name }] }`.
+ */
+async function fetchChutesModels(baseUrl?: string, apiKey?: string): Promise<string[]> {
+  if (!apiKey) {
+    throw new Error('Chutes requires an API key to fetch models');
+  }
+
+  const effectiveBaseUrl = baseUrl || 'https://api.chutes.ai';
+  const chutesUrl = effectiveBaseUrl.replace(/\/$/, '') + '/chutes';
+
+  const fetchFn = createTimeoutFetch(30000);
+  const response = await fetchFn(chutesUrl, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Chutes models: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  if (data.data && Array.isArray(data.data)) {
+    return data.data
+      .map((m: { id?: string; name?: string }) => m.id || m.name || '')
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(data)) {
+    return data
+      .map((m: { id?: string; name?: string }) => m.id || m.name || '')
+      .filter(Boolean);
+  }
+
+  throw new Error('Unexpected Chutes API response format');
 }
