@@ -86,6 +86,14 @@ export type {
   WorldStateTranslationInput,
   WorldStateTranslationResult,
 } from './WorldStateTranslationService';
+
+// Suggestions refresh service
+export { SuggestionsRefreshService } from './SuggestionsRefreshService';
+export type {
+  SuggestionsRefreshDependencies,
+  SuggestionsRefreshInput,
+  SuggestionsRefreshResult,
+} from './SuggestionsRefreshService';
 export type { RetrievalDependencies, RetrievalInput } from './phases';
 export type { NarrativeDependencies, NarrativeInput, NarrativeResult } from './phases';
 export type { ClassificationDependencies, ClassificationInput, ClassificationPhaseResult } from './phases';
