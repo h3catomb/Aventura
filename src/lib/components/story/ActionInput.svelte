@@ -42,10 +42,13 @@
   import { isTouchDevice } from "$lib/utils/swipe";
   import {
     GenerationPipeline,
+    retryService,
     type PipelineDependencies,
     type PipelineConfig,
     type GenerationContext,
     type GenerationEvent,
+    type RetryStoreCallbacks,
+    type RetryBackupData,
   } from "$lib/services/generation";
 
   function log(...args: any[]) {
@@ -325,6 +328,24 @@
         ui.setStyleReviewLoading(false, storyId);
       }
     }
+  }
+
+  /**
+   * Build retry store callbacks for RetryService.
+   */
+  function buildRetryStoreCallbacks(): RetryStoreCallbacks {
+    return {
+      restoreFromRetryBackup: story.restoreFromRetryBackup.bind(story),
+      deleteEntriesFromPosition: story.deleteEntriesFromPosition.bind(story),
+      deleteEntitiesCreatedAfterBackup: story.deleteEntitiesCreatedAfterBackup.bind(story),
+      restoreCharacterSnapshots: story.restoreCharacterSnapshots.bind(story),
+      restoreTimeTrackerSnapshot: story.restoreTimeTrackerSnapshot.bind(story),
+      lockRetryInProgress: story.lockRetryInProgress.bind(story),
+      unlockRetryInProgress: story.unlockRetryInProgress.bind(story),
+      restoreActivationData: ui.restoreActivationData.bind(ui),
+      clearActivationData: ui.clearActivationData.bind(ui),
+      setLastLorebookRetrieval: ui.setLastLorebookRetrieval.bind(ui),
+    };
   }
 
   /**
@@ -1170,63 +1191,27 @@
       return;
     }
 
-    // Clear any error state and stale UI data
-    ui.clearGenerationError();
-    ui.clearSuggestions(story.currentStory?.id);
-    ui.clearActionChoices(story.currentStory?.id);
-    if (backup.hasFullState) {
-      ui.restoreActivationData(backup.activationData, backup.storyPosition);
-    }
-    ui.setLastLorebookRetrieval(null);
+    const storyId = story.currentStory.id;
 
     try {
-      if (backup.hasFullState) {
-        await story.restoreFromRetryBackup({
-          entries: backup.entries,
-          characters: backup.characters,
-          locations: backup.locations,
-          items: backup.items,
-          storyBeats: backup.storyBeats,
-          embeddedImages: backup.embeddedImages,
-          timeTracker: backup.timeTracker,
-        });
+      const result = await retryService.handleStopGeneration(
+        backup as RetryBackupData,
+        buildRetryStoreCallbacks(),
+        {
+          clearGenerationError: () => ui.clearGenerationError(),
+          clearSuggestions: () => ui.clearSuggestions(storyId),
+          clearActionChoices: () => ui.clearActionChoices(storyId),
+        },
+      );
+
+      if (result.success) {
+        await tick();
+        actionType = result.restoredActionType ?? actionType;
+        isRawActionChoice = result.restoredWasRawActionChoice ?? false;
+        inputValue = result.restoredRawInput ?? "";
       } else {
-        // Persistent restore - delete entries and entities created after backup
-        // Clear activation data but don't save yet - let the next action rebuild it
-        ui.clearActivationData();
-
-        log(
-          "Persistent stop restore: deleting entries from position",
-          backup.entryCountBeforeAction,
-        );
-        await story.deleteEntriesFromPosition(backup.entryCountBeforeAction);
-
-        if (backup.hasEntityIds) {
-          log(
-            "Persistent stop restore: deleting entities created after backup",
-          );
-          await story.deleteEntitiesCreatedAfterBackup({
-            characterIds: backup.characterIds,
-            locationIds: backup.locationIds,
-            itemIds: backup.itemIds,
-            storyBeatIds: backup.storyBeatIds,
-            embeddedImageIds: backup.embeddedImageIds,
-          });
-        } else {
-          log(
-            "Persistent stop restore: skipping entity cleanup (no ID snapshot)",
-          );
-        }
-        await story.restoreCharacterSnapshots(backup.characterSnapshots);
-
-        // Restore time tracker snapshot after persistent cleanup
-        await story.restoreTimeTrackerSnapshot(backup.timeTracker);
+        log("Stop restore failed", result.error);
       }
-
-      await tick();
-      actionType = backup.actionType;
-      isRawActionChoice = backup.wasRawActionChoice;
-      inputValue = backup.rawInput;
     } catch (error) {
       log("Stop restore failed", error);
       console.error("Stop restore failed:", error);
@@ -1313,6 +1298,8 @@
       return;
     }
 
+    const storyId = story.currentStory.id;
+
     // Debug: Log character state before restore
     const currentCharDescriptors = story.characters.map((c) => ({
       name: c.name,
@@ -1340,66 +1327,22 @@
       userAction: backup.userActionContent.substring(0, 50),
     });
 
-    // Clear any error state
-    ui.clearGenerationError();
-
-    // Clear suggestions and action choices
-    ui.clearSuggestions(story.currentStory?.id);
-    ui.clearActionChoices(story.currentStory?.id);
-
-    // Clear lorebook retrieval debug state since it's now stale
-    ui.setLastLorebookRetrieval(null);
-
-    // Clear stale image generation context (contains old portrait state)
-    lastImageGenContext = null;
-
     try {
-      if (backup.hasFullState) {
-        // Full state restore (in-memory backup with snapshots)
-        // Restore activation data from backup to preserve lorebook stickiness state
-        ui.restoreActivationData(backup.activationData, backup.storyPosition);
+      // Use RetryService to perform restore
+      const result = await retryService.handleRetryLastMessage(
+        backup as RetryBackupData,
+        buildRetryStoreCallbacks(),
+        {
+          clearGenerationError: () => ui.clearGenerationError(),
+          clearSuggestions: () => ui.clearSuggestions(storyId),
+          clearActionChoices: () => ui.clearActionChoices(storyId),
+          clearImageContext: () => { lastImageGenContext = null; },
+        },
+      );
 
-        // Restore story state from backup (this locks editing internally)
-        await story.restoreFromRetryBackup({
-          entries: backup.entries,
-          characters: backup.characters,
-          locations: backup.locations,
-          items: backup.items,
-          storyBeats: backup.storyBeats,
-          embeddedImages: backup.embeddedImages,
-          timeTracker: backup.timeTracker,
-        });
-      } else {
-        // Persistent restore (backup without full snapshots, but with entity IDs)
-        // Lock editing for persistent restore path
-        story.lockRetryInProgress();
-
-        // Clear activation data but don't save yet - generation will rebuild it
-        ui.clearActivationData();
-
-        log(
-          "Persistent restore: deleting entries from position",
-          backup.entryCountBeforeAction,
-        );
-        await story.deleteEntriesFromPosition(backup.entryCountBeforeAction);
-
-        if (backup.hasEntityIds) {
-          // Delete entities that were created after the backup (AI extractions)
-          log("Persistent restore: deleting entities created after backup");
-          await story.deleteEntitiesCreatedAfterBackup({
-            characterIds: backup.characterIds,
-            locationIds: backup.locationIds,
-            itemIds: backup.itemIds,
-            storyBeatIds: backup.storyBeatIds,
-            embeddedImageIds: backup.embeddedImageIds,
-          });
-        } else {
-          log("Persistent restore: skipping entity cleanup (no ID snapshot)");
-        }
-        await story.restoreCharacterSnapshots(backup.characterSnapshots);
-
-        // Restore time tracker snapshot after persistent cleanup
-        await story.restoreTimeTrackerSnapshot(backup.timeTracker);
+      if (!result.success) {
+        log("Retry restore failed", result.error);
+        return;
       }
 
       // Wait for state to sync
@@ -1424,12 +1367,12 @@
           log("Retry: Translating user input", {
             sourceLanguage: translationSettings.sourceLanguage,
           });
-          const result = await aiService.translateInput(
+          const translationResult = await aiService.translateInput(
             backup.userActionContent,
             translationSettings.sourceLanguage,
           );
           originalInput = backup.userActionContent; // Save original for display
-          promptContent = result.translatedContent; // Use English for prompt
+          promptContent = translationResult.translatedContent; // Use English for prompt
           log("Retry: Input translated", {
             originalLength: backup.userActionContent.length,
             translatedLength: promptContent.length,
@@ -1480,12 +1423,6 @@
     } catch (error) {
       log("Retry last message failed", error);
       console.error("Retry last message failed:", error);
-    } finally {
-      // Unlock editing if it was locked by persistent restore path
-      // (Full state restore unlocks internally in restoreFromRetryBackup)
-      if (backup && !backup.hasFullState) {
-        story.unlockRetryInProgress();
-      }
     }
   }
 

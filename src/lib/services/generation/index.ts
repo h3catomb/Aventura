@@ -33,7 +33,11 @@ export type { PipelineDependencies, PipelineConfig, PipelineResult } from './Gen
 
 // Phase services
 export { PreGenerationPhase, RetrievalPhase, NarrativePhase, ClassificationPhase, TranslationPhase, ImagePhase, PostGenerationPhase } from './phases';
-export type { RetryBackupData, PreGenerationResult, PreGenerationInput } from './phases';
+export type { RetryBackupData as PhaseRetryBackupData, PreGenerationResult, PreGenerationInput } from './phases';
+
+// Retry service
+export { RetryService, retryService } from './RetryService';
+export type { RetryBackupData, RetryStoreCallbacks, RestoreResult } from './RetryService';
 export type { RetrievalDependencies, RetrievalInput } from './phases';
 export type { NarrativeDependencies, NarrativeInput, NarrativeResult } from './phases';
 export type { ClassificationDependencies, ClassificationInput, ClassificationPhaseResult } from './phases';
