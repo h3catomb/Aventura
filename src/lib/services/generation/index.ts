@@ -75,6 +75,17 @@ export type {
   BackgroundTaskInput,
   BackgroundTaskResult,
 } from './BackgroundTaskCoordinator';
+
+// World state translation service
+export { WorldStateTranslationService } from './WorldStateTranslationService';
+export type {
+  ClassificationNewEntities,
+  WorldStateEntities,
+  WorldStateTranslationCallbacks,
+  WorldStateTranslationDependencies,
+  WorldStateTranslationInput,
+  WorldStateTranslationResult,
+} from './WorldStateTranslationService';
 export type { RetrievalDependencies, RetrievalInput } from './phases';
 export type { NarrativeDependencies, NarrativeInput, NarrativeResult } from './phases';
 export type { ClassificationDependencies, ClassificationInput, ClassificationPhaseResult } from './phases';
