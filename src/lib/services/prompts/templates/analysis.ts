@@ -210,25 +210,10 @@ Identify overused phrases, sentence patterns, structural repetition, and stylist
 - Be specific about the exact phrase or structural pattern
 - For structural issues, describe the pattern clearly (e.g., "5 of 7 passages begin with ambient sound descriptions")
 - Provide context-appropriate alternatives
-- Focus on actionable improvements
-- Respond with valid JSON only`,
+- Focus on actionable improvements`,
   userContent: `Analyze these {{passageCount}} passages for repetitive phrases, structural patterns, and style issues. Each passage is a separate AI-generated narrative response.
 
-{{passages}}
-
-Return JSON with findings:
-{
-  "phrases": [
-    {
-      "phrase": "the repeated phrase or pattern",
-      "frequency": number,
-      "severity": "low|medium|high",
-      "alternatives": ["suggested alternatives"],
-      "contexts": ["example contexts from text"]
-    }
-  ],
-  "overallAssessment": "brief overall style assessment"
-}`,
+{{passages}}`,
 };
 
 /**
@@ -240,7 +225,7 @@ export const lorebookClassifierPromptTemplate: PromptTemplate = {
   name: 'Lorebook Classifier',
   category: 'service',
   description: 'Classifies lorebook entries into appropriate categories',
-  content: `You are a precise classifier for fantasy/RPG lorebook entries. Analyze the name, content, and keywords to determine the most appropriate category. Be decisive - pick the single best category for each entry. Respond only with the JSON array.`,
+  content: `You are a precise classifier for fantasy/RPG lorebook entries. Analyze the name, content, and keywords to determine the most appropriate category. Be decisive - pick the single best category for each entry.`,
   userContent: `Classify each lorebook entry into exactly one category. The categories are:
 - character: A person, creature, or being with personality/traits (NPCs, monsters, etc.)
 - location: A place, area, building, or geographic feature
@@ -249,13 +234,8 @@ export const lorebookClassifierPromptTemplate: PromptTemplate = {
 - concept: A magic system, rule, tradition, technology, or abstract idea
 - event: A historical occurrence, battle, ceremony, or significant happening
 
-For each entry, output ONLY a JSON array with objects containing "index" and "type".
-
 Entries to classify:
-{{entriesJson}}
-
-Respond with ONLY valid JSON in this exact format:
-[{"index": 0, "type": "character"}, {"index": 1, "type": "location"}, ...]`,
+{{entriesJson}}`,
 };
 
 /**

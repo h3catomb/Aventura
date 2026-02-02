@@ -65,16 +65,11 @@ Analyze the narrative and identify up to {{maxImages}} key visual moments (0 = u
 ## Character Reference
 {{characterDescriptors}}
 
-## Output Format
-Return a JSON array (no markdown, just raw JSON):
-[
-  {
-    "prompt": "Detailed prompt (500-800 chars MAX) with full character appearance, scene details, and style description",
-    "sourceText": "exact phrase from narrative (3-15 words, VERBATIM with all punctuation and *markup*)",
-    "sceneType": "action|item|character|environment",
-    "priority": 1-10
-  }
-]
+## Prompt Requirements
+- **Prompt length:** 500-800 characters MAX (prompts over 800 chars will ERROR and fail)
+- **sourceText:** Exact phrase from narrative (3-15 words, VERBATIM with all punctuation and *markup*)
+- **sceneType:** action|item|character|environment
+- **priority:** 1-10
 
 ## Prompt Structure (follow this order)
 1. **Character appearance** - hair (color, length, style), eyes, skin tone, expression, build
@@ -170,20 +165,13 @@ Image models don't know who "Elena" or "Marcus" are. Character names are ONLY fo
 **WRONG:** "Elena wielding a sword while Marcus watches"
 **RIGHT:** "Woman with silver hair wielding sword, tall man with brown hair watching nearby"
 
-## Output Format
-Return a JSON array (no markdown):
-[
-  {
-    "prompt": "Concise visual description - NO character names, only visual traits",
-    "sourceText": "exact phrase from narrative (3-15 words, VERBATIM)",
-    "sceneType": "action|item|character|environment",
-    "priority": 1-10,
-    "characters": ["Character1", "Character2"],
-    "generatePortrait": false
-  }
-]
-
-Note: First character in the array is the primary character.
+## Output Requirements
+- **Prompt:** Concise visual description - NO character names, only visual traits
+- **sourceText:** Exact phrase from narrative (3-15 words, VERBATIM)
+- **sceneType:** action|item|character|environment
+- **priority:** 1-10
+- **characters:** Array of character names (first character is primary)
+- **generatePortrait:** true for portrait generation, false otherwise
 
 ## Prompt Structure
 
