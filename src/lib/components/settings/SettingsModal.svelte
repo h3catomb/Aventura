@@ -3,8 +3,6 @@
   import { getVersion } from "@tauri-apps/api/app";
   import { ui } from "$lib/stores/ui.svelte";
   import { settings } from "$lib/stores/settings.svelte";
-  import type { ProviderInfo } from "$lib/services/ai/types";
-  import { DEFAULT_PROVIDERS } from "$lib/services/ai/providers";
   import {
     Settings2,
     RotateCcw,
@@ -72,7 +70,6 @@
     | "advanced"
   >("api");
   let promptImportModalOpen = $state(false);
-  let providerOptions = $state<ProviderInfo[]>(DEFAULT_PROVIDERS);
 
   let manualBodyEditorOpen = $state(false);
   let manualBodyEditorTitle = $state("Manual Request Body");
@@ -275,10 +272,9 @@
                       : ""}
                 >
                   {#if tab.id === "api"}
-                    <ApiConnectionTab {providerOptions} />
+                    <ApiConnectionTab />
                   {:else if tab.id === "generation"}
                     <GenerationTab
-                      {providerOptions}
                       onOpenManualBodyEditor={openManualBodyEditor}
                     />
                   {:else if tab.id === "interface"}
