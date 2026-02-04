@@ -667,13 +667,13 @@
                   <div class="flex justify-between">
                     <Label>Max Iterations</Label>
                     <span class="text-xs font-medium bg-muted px-2 py-0.5 rounded">
-                      {settings.systemServicesSettings.agenticRetrieval?.maxIterations ?? 3}
+                      {settings.systemServicesSettings.agenticRetrieval?.maxIterations ?? 30}
                     </span>
                   </div>
                   <Slider
-                    value={[settings.systemServicesSettings.agenticRetrieval?.maxIterations ?? 3]}
+                    value={[settings.systemServicesSettings.agenticRetrieval?.maxIterations ?? 30]}
                     min={1}
-                    max={10}
+                    max={30}
                     step={1}
                     onValueChange={(v) => {
                       settings.systemServicesSettings.agenticRetrieval.maxIterations = v[0];
