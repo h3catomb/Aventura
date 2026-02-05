@@ -186,13 +186,14 @@ export function createRetrievalTools(context: RetrievalToolContext) {
      * Returns the final synthesis and signals completion.
      */
     finish_retrieval: tool({
-      description: 'Call this when you have finished selecting all relevant entries. Provide a synthesis explaining your selections.',
+      description: 'Call this when you have finished gathering context. Provide a synthesis of your selections AND a summary of information learned from chapter queries.',
       inputSchema: z.object({
         synthesis: z.string().describe('Explanation of why selected entries are relevant to the current context'),
+        chapterSummary: z.string().optional().describe('Summary of key information learned from chapter queries that is relevant to the current situation (character states, past events, relationships, etc.)'),
         confidence: z.enum(['low', 'medium', 'high']).describe('Confidence level in the selection'),
         additionalContext: z.string().optional().describe('Any additional context notes for the narrative'),
       }),
-      execute: async (args: { synthesis: string; confidence: 'low' | 'medium' | 'high'; additionalContext?: string }) => {
+      execute: async (args: { synthesis: string; chapterSummary?: string; confidence: 'low' | 'medium' | 'high'; additionalContext?: string }) => {
         // This tool's execution signals completion of the retrieval loop
         return {
           completed: true,

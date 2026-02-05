@@ -70,6 +70,7 @@ export type AgenticRetrievalResult = RetrievalResult;
 interface FinishRetrievalResult {
   completed: boolean;
   synthesis: string;
+  chapterSummary?: string;
   confidence: 'low' | 'medium' | 'high';
   additionalContext?: string;
 }
@@ -190,7 +191,8 @@ export class AgenticRetrievalService {
       iterations,
       selectedCount: selectedIndices.size,
       queriedChapters: queriedChapterIds.size,
-      terminalResult,
+      hasTerminalResult: !!terminalResult,
+      hasChapterSummary: !!terminalResult?.chapterSummary,
     });
 
     // Build the selected entries array (use plainEntries to avoid proxy issues)
@@ -206,10 +208,14 @@ export class AgenticRetrievalService {
         : terminalResult.additionalContext;
     }
 
-    // Build context string from selected entries
+    // Build context string from selected entries and chapter summary
     const contextParts: string[] = [];
     if (reasoning) {
       contextParts.push(`[Retrieved Context - ${reasoning}]`);
+    }
+    // Include chapter summary if provided
+    if (terminalResult?.chapterSummary) {
+      contextParts.push(`## Past Story Context\n${terminalResult.chapterSummary}`);
     }
     for (const entry of selectedEntries) {
       contextParts.push(`## ${entry.name} (${entry.type})\n${entry.description}`);

@@ -220,9 +220,11 @@ Guidelines:
    - Relationship history
 4. Be selective - only gather truly relevant information
 5. Search and select lorebook entries that are relevant to the current context
-6. When you have enough context, call finish_retrieval with a synthesized summary
+6. When you have enough context, call finish_retrieval with:
+   - synthesis: Why you selected these entries
+   - chapterSummary: A summary of key facts learned from chapter queries (character states, past events, relationships, plot points) that the narrator needs to know
 
-The context you provide will be injected into the narrator's prompt to help maintain story consistency.`,
+The chapterSummary is crucial - it's how information from past chapters reaches the narrator. Include specific details, not just "I learned about X."`,
   userContent: `# Current Situation
 
 USER INPUT:
