@@ -32,6 +32,10 @@ export class WizardStore {
   currentStep = $state(1)
   totalSteps = 8 // Reduced from 9
 
+  // Track auto-linked lorebook IDs so they can be removed when source is cleared
+  private _scenarioLinkedLorebookVaultId = $state<string | null>(null)
+  private _protagonistLinkedLorebookVaultId = $state<string | null>(null)
+
   onClose: () => void
 
   constructor(onClose: () => void) {
@@ -156,6 +160,11 @@ export class WizardStore {
     }
 
     // 5. Auto-link embedded lorebook if available
+    // Remove previously auto-linked scenario lorebook first
+    if (this._scenarioLinkedLorebookVaultId) {
+      this._removeLinkedLorebook(this._scenarioLinkedLorebookVaultId)
+      this._scenarioLinkedLorebookVaultId = null
+    }
     if (scenario.metadata?.linkedLorebookId) {
       const linkedId = scenario.metadata.linkedLorebookId as string
       const lorebook = lorebookVault.getById(linkedId)
@@ -165,11 +174,36 @@ export class WizardStore {
           this.narrative.addLorebookFromVault(lorebook)
           ui.showToast(`Added embedded lorebook: ${lorebook.name}`, 'info')
         }
+        this._scenarioLinkedLorebookVaultId = linkedId
       }
     }
 
     this.setting.showScenarioVaultPicker = false
     this.setting.useSettingAsIs()
+  }
+
+  /** Remove auto-linked lorebook by vault lorebook ID */
+  _removeLinkedLorebook(lorebookVaultId: string) {
+    const imported = this.narrative.importedLorebooks.find((lb) => lb.vaultId === lorebookVaultId)
+    if (imported) {
+      this.narrative.removeLorebook(imported.id)
+    }
+  }
+
+  /** Clear scenario's auto-linked lorebook (called when clearing card import) */
+  clearScenarioLinkedLorebook() {
+    if (this._scenarioLinkedLorebookVaultId) {
+      this._removeLinkedLorebook(this._scenarioLinkedLorebookVaultId)
+      this._scenarioLinkedLorebookVaultId = null
+    }
+  }
+
+  /** Track/untrack protagonist linked lorebook */
+  setProtagonistLinkedLorebook(lorebookVaultId: string | null) {
+    if (this._protagonistLinkedLorebookVaultId) {
+      this._removeLinkedLorebook(this._protagonistLinkedLorebookVaultId)
+    }
+    this._protagonistLinkedLorebookVaultId = lorebookVaultId
   }
 
   // Wrapper for Generate Opening (Needs data from all stores)

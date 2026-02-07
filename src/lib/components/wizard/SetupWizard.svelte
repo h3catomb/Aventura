@@ -6,6 +6,7 @@
   import { ChevronLeft, ChevronRight, Sparkles, Play } from 'lucide-svelte'
   import { ui } from '$lib/stores/ui.svelte'
   import { lorebookVault } from '$lib/stores/lorebookVault.svelte'
+  import { characterVault } from '$lib/stores/characterVault.svelte'
   import { hasRequiredCredentials } from '$lib/services/ai/image'
   import type { VaultCharacter } from '$lib/types'
 
@@ -31,15 +32,23 @@
   const wizard = new WizardStore(() => onClose())
 
   // Auto-link embedded lorebook when selecting a vault character
-  function autoLinkCharacterLorebook(char: VaultCharacter) {
+  function autoLinkCharacterLorebook(char: VaultCharacter, isProtagonist = false) {
     const linkedId = (char.metadata as Record<string, unknown>)?.linkedLorebookId as string | undefined
     if (!linkedId) return
+    if (isProtagonist) wizard.setProtagonistLinkedLorebook(linkedId)
     const lorebook = lorebookVault.getById(linkedId)
     if (!lorebook) return
     const alreadyAdded = wizard.narrative.importedLorebooks.some((lb) => lb.vaultId === linkedId)
     if (alreadyAdded) return
     wizard.narrative.addLorebookFromVault(lorebook)
     ui.showToast(`Added embedded lorebook: ${lorebook.name}`, 'info')
+  }
+
+  // Resolve linkedLorebookId from a vault character ID
+  function getLinkedLorebookIdFromVaultCharacter(vaultCharId: string): string | undefined {
+    const char = characterVault.getById(vaultCharId)
+    if (!char) return undefined
+    return (char.metadata as Record<string, unknown>)?.linkedLorebookId as string | undefined
   }
 
   // Check if API key is configured
@@ -156,7 +165,10 @@
           onEditSetting={() => wizard.setting.editSetting()}
           onCancelEdit={() => wizard.setting.cancelSettingEdit()}
           onSelectScenario={(id) => wizard.selectScenario(id)}
-          onClearCardImport={() => wizard.character.clearCardImport()}
+          onClearCardImport={() => {
+            wizard.clearScenarioLinkedLorebook()
+            wizard.character.clearCardImport()
+          }}
           onSaveToVault={() =>
             wizard.setting.saveScenarioToVault(
               wizard.narrative.storyTitle,
@@ -233,7 +245,7 @@
               (v) => (wizard.image.protagonistVisualDescriptors = v),
               (v) => (wizard.image.protagonistPortrait = v),
             )
-            autoLinkCharacterLorebook(c)
+            autoLinkCharacterLorebook(c, true)
           }}
           onNavigateToVault={() => {
             ui.setActivePanel('vault')
@@ -273,7 +285,14 @@
               wizard.narrative.selectedGenre,
               wizard.narrative.customGenre,
             )}
-          onDeleteSupportingCharacter={(i) => wizard.character.deleteSupportingCharacter(i)}
+          onDeleteSupportingCharacter={(i) => {
+            const char = wizard.character.supportingCharacters[i]
+            if (char?.vaultId) {
+              const linkedId = getLinkedLorebookIdFromVaultCharacter(char.vaultId)
+              if (linkedId) wizard._removeLinkedLorebook(linkedId)
+            }
+            wizard.character.deleteSupportingCharacter(i)
+          }}
           onGenerateCharacters={() =>
             wizard.character.generateCharacters(
               wizard.setting.expandedSetting!,
@@ -390,7 +409,10 @@
           onSaveEdit={() => wizard.narrative.saveOpeningEdit()}
           onDraftChange={(v) => (wizard.narrative.openingDraft = v)}
           onUseCardOpening={() => wizard.narrative.useCardOpening()}
-          onClearCardOpening={() => wizard.character.clearCardImport()}
+          onClearCardOpening={() => {
+            wizard.clearScenarioLinkedLorebook()
+            wizard.character.clearCardImport()
+          }}
           onManualOpeningChange={(v) => (wizard.narrative.manualOpeningText = v)}
           onClearGenerated={() => wizard.narrative.clearGeneratedOpening()}
         />
