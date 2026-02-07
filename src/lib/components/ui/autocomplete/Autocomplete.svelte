@@ -109,6 +109,51 @@
     }
     return selected ? itemLabel(selected as T) : placeholder
   })
+
+  // Calculate the index of the selected item in the filtered list
+  let selectedIndex = $derived.by(() => {
+    if (!selected || multiple) return -1
+    const val = Array.isArray(selected) ? '' : itemValue(selected as T)
+    return filteredItems.findIndex((item) => itemValue(item) === val)
+  })
+
+  // State to track if we should perform the initial scroll
+  let initialScrollDone = $state(false)
+  let delayedScrollIndex = $state(-1)
+
+  // Handle scrolling for virtualized list
+  $effect(() => {
+    if (open) {
+      if (!initialScrollDone) {
+        // Delay to let VirtualList initialize and measure
+        const timer = setTimeout(() => {
+          if (selectedIndex >= 0) {
+            delayedScrollIndex = showCustomOption ? selectedIndex + 1 : selectedIndex
+          }
+          initialScrollDone = true
+        }, 150)
+        return () => clearTimeout(timer)
+      }
+    } else {
+      initialScrollDone = false
+      delayedScrollIndex = -1
+    }
+  })
+
+  // Handle scrolling for non-virtualized list
+  $effect(() => {
+    if (open && !virtualized && selectedIndex >= 0) {
+      // Find the selected item element after the popover has opened and rendered
+      setTimeout(() => {
+        const selectedEl = document.querySelector(
+          `[data-autocomplete-item-index="${selectedIndex}"]`,
+        )
+        if (selectedEl) {
+          selectedEl.scrollIntoView({ block: 'nearest' })
+        }
+      }, 100)
+    }
+  })
 </script>
 
 <Popover.Root bind:open>
@@ -146,7 +191,8 @@
                     height={listHeight}
                     itemCount={totalItemCount}
                     itemSize={itemHeight}
-                    scrollToAlignment="start"
+                    scrollToIndex={delayedScrollIndex}
+                    scrollToAlignment="auto"
                   >
                     {#snippet item({ style, index })}
                       <div {style}>
@@ -191,7 +237,11 @@
                 </Command.Item>
               {/if}
               {#each filteredItems as itemData, i}
-                <Command.Item value={itemValue(itemData)} onSelect={() => handleSelect(itemData)}>
+                <Command.Item
+                  value={itemValue(itemData)}
+                  onSelect={() => handleSelect(itemData)}
+                  data-autocomplete-item-index={i}
+                >
                   {#if itemSnippet}
                     {@render itemSnippet(itemData, i)}
                   {:else}

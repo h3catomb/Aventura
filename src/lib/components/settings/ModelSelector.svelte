@@ -170,6 +170,7 @@
       onCustomSelect={handleSelectModel}
       {placeholder}
       class={cn(isModelMissing && 'border-yellow-500/50')}
+      virtualized
     >
       {#snippet itemSnippet(modelOption, modelIndex)}
         {#if modelIndex < favoriteCount}
